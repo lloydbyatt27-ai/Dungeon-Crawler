@@ -1,0 +1,59 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/AchievementsUI.gd" id="1_ach"]
+
+[node name="AchievementsUI" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("1_ach")
+
+[node name="Dim" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.7)
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Dim"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -340.0
+offset_top = -320.0
+offset_right = 340.0
+offset_bottom = 320.0
+
+[node name="Margin" type="MarginContainer" parent="Dim/Panel"]
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="VBox" type="VBoxContainer" parent="Dim/Panel/Margin"]
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Dim/Panel/Margin/VBox"]
+text = "Achievements"
+theme_override_font_sizes/font_size = 26
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+
+[node name="Summary" type="Label" parent="Dim/Panel/Margin/VBox"]
+text = "0 / 12 unlocked"
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.7, 0.7, 0.75, 1)
+
+[node name="Scroll" type="ScrollContainer" parent="Dim/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 460)
+size_flags_vertical = 3
+
+[node name="List" type="VBoxContainer" parent="Dim/Panel/Margin/VBox/Scroll"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="CloseButton" type="Button" parent="Dim/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 36)
+text = "Close (Esc)"

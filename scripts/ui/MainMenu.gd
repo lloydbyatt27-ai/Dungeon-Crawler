@@ -3,6 +3,7 @@ extends Control
 
 @onready var new_game_button: Button = $Center/VBox/NewGameButton
 @onready var continue_button: Button = $Center/VBox/ContinueButton
+@onready var achievements_button: Button = $Center/VBox/AchievementsButton
 @onready var quit_button: Button = $Center/VBox/QuitButton
 @onready var save_info_label: Label = $Center/VBox/SaveInfo
 
@@ -13,8 +14,14 @@ const CLASS_SELECT_PATH: String = "res://scenes/ui/ClassSelect.tscn"
 func _ready() -> void:
 	new_game_button.pressed.connect(_on_new_game)
 	continue_button.pressed.connect(_on_continue)
+	achievements_button.pressed.connect(_on_achievements)
 	quit_button.pressed.connect(_on_quit)
 	_refresh_save_state()
+
+
+func _on_achievements() -> void:
+	var ach_ui = preload("res://scenes/ui/AchievementsUI.tscn").instantiate()
+	add_child(ach_ui)
 
 
 func _refresh_save_state() -> void:
