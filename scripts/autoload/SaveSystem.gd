@@ -19,6 +19,10 @@ const VERSION: int = 1
 # Cached deserialized save (set by load_save), applied to the next player spawn.
 var pending_load_data: Dictionary = {}
 
+# Class chosen on the ClassSelect screen for the next New Game session.
+# Read by PlayerController._ready when no save data is being applied.
+var pending_class: String = ""
+
 # Run-level transient state used by the area-complete screen
 var run_summary: Dictionary = {}
 

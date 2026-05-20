@@ -52,11 +52,11 @@ func _build_skill_slots() -> void:
 		child.queue_free()
 	_skill_slot_nodes.clear()
 
-	var skill_ids: Array = _player.skill_system.get_skill_ids()
+	var skill_ids: Array = _player.skill_system.active_skills
 	var keys := ["Q", "E", "R", "F"]
 	for i in range(skill_ids.size()):
 		var sid: String = skill_ids[i]
-		var def: Dictionary = _player.skill_system.SKILLS[sid]
+		var def: Dictionary = _player.skill_system.SKILL_CATALOG[sid]
 		var slot := _make_skill_slot(sid, def, keys[i] if i < keys.size() else "?")
 		skill_bar.add_child(slot.root)
 		_skill_slot_nodes.append(slot)
@@ -195,7 +195,7 @@ func _process(_delta: float) -> void:
 	if _player.skill_system:
 		for slot in _skill_slot_nodes:
 			var cd_remaining: float = _player.skill_system.cooldowns.get(slot.skill_id, 0.0)
-			var max_cd: float = _player.skill_system.SKILLS[slot.skill_id].cooldown
+			var max_cd: float = _player.skill_system.SKILL_CATALOG[slot.skill_id].cooldown
 			if cd_remaining > 0.0:
 				slot.cd_overlay.visible = true
 				slot.cd_overlay.anchor_top = 1.0 - (cd_remaining / max_cd)

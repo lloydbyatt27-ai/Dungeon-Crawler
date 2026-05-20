@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/combat/Health.gd" id="2_health"]
@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" path="res://scenes/skills/FrostbiteEffect.tscn" id="8_frostbite"]
 [ext_resource type="PackedScene" path="res://scenes/skills/WarcryAura.tscn" id="9_warcry"]
 [ext_resource type="Script" path="res://scripts/systems/Inventory.gd" id="10_inv"]
+[ext_resource type="PackedScene" path="res://scenes/skills/ProjectileEffect.tscn" id="11_projectile"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.4
@@ -101,9 +102,10 @@ shape = SubResource("BoxShape3D_melee")
 
 [node name="SkillSystem" type="Node" parent="."]
 script = ExtResource("6_skills")
-earthquake_scene = ExtResource("7_earthquake")
-frostbite_scene = ExtResource("8_frostbite")
-warcry_aura_scene = ExtResource("9_warcry")
+aoe_scene = ExtResource("7_earthquake")
+cone_scene = ExtResource("8_frostbite")
+buff_aura_scene = ExtResource("9_warcry")
+projectile_scene = ExtResource("11_projectile")
 
 [node name="Inventory" type="Node" parent="."]
 script = ExtResource("10_inv")

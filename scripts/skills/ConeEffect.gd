@@ -13,8 +13,10 @@ extends Node3D
 @onready var hitbox: HitBox = $HitBox
 
 
-func setup(dmg: float, is_crit: bool = false) -> void:
+func setup(dmg: float, is_crit: bool = false, override_color: Variant = null) -> void:
 	damage = dmg
+	if override_color != null:
+		color = override_color
 	var mat := mesh_instance.get_surface_override_material(0)
 	if mat is StandardMaterial3D:
 		var sm: StandardMaterial3D = mat

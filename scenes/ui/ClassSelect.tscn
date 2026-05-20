@@ -1,0 +1,92 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/ClassSelect.gd" id="1_select"]
+
+[node name="ClassSelect" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_select")
+
+[node name="Background" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.08, 0.07, 0.08, 1)
+mouse_filter = 2
+
+[node name="BackButton" type="Button" parent="."]
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 124.0
+offset_bottom = 60.0
+text = "← Back"
+theme_override_font_sizes/font_size = 16
+
+[node name="Center" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="VBox" type="VBoxContainer" parent="Center"]
+custom_minimum_size = Vector2(900, 0)
+theme_override_constants/separation = 24
+
+[node name="Title" type="Label" parent="Center/VBox"]
+text = "CHOOSE YOUR CLASS"
+theme_override_font_sizes/font_size = 36
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+
+[node name="CardRow" type="HBoxContainer" parent="Center/VBox"]
+custom_minimum_size = Vector2(0, 180)
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="DetailPanel" type="PanelContainer" parent="Center/VBox"]
+custom_minimum_size = Vector2(900, 280)
+
+[node name="Margin" type="MarginContainer" parent="Center/VBox/DetailPanel"]
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="VBox" type="VBoxContainer" parent="Center/VBox/DetailPanel/Margin"]
+theme_override_constants/separation = 8
+
+[node name="ClassName" type="Label" parent="Center/VBox/DetailPanel/Margin/VBox"]
+text = "Guardian"
+theme_override_font_sizes/font_size = 28
+theme_override_colors/font_color = Color(0.85, 0.55, 0.3, 1)
+
+[node name="RoleLabel" type="Label" parent="Center/VBox/DetailPanel/Margin/VBox"]
+text = "Tank   ·   Easy"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.75, 0.75, 0.78, 1)
+
+[node name="Description" type="Label" parent="Center/VBox/DetailPanel/Margin/VBox"]
+text = "Front-line tank with heavy armor and devastating melee."
+theme_override_font_sizes/font_size = 15
+autowrap_mode = 3
+
+[node name="Spacer1" type="Control" parent="Center/VBox/DetailPanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 8)
+
+[node name="StatsLabel" type="RichTextLabel" parent="Center/VBox/DetailPanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 60)
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+
+[node name="SkillsLabel" type="RichTextLabel" parent="Center/VBox/DetailPanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 100)
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+
+[node name="BeginButton" type="Button" parent="Center/VBox"]
+custom_minimum_size = Vector2(0, 56)
+text = "Begin Adventure"
+theme_override_font_sizes/font_size = 22

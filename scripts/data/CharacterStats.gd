@@ -40,14 +40,23 @@ var bonus_crit_damage: float = 0.0
 
 const LEVEL_CAP: int = 50
 
-# Class presets: how attributes auto-allocate on level-up until we add UI
-const AUTO_ALLOCATE: Dictionary = {
-	"Guardian":  {"strength": 2, "stamina": 1},
-	"Mercenary": {"strength": 1, "agility": 1, "stamina": 1},
-	"Disciple":  {"intelligence": 2, "stamina": 1},
-	"Prowler":   {"agility": 2, "strength": 1},
-	"Scout":     {"agility": 2, "stamina": 1},
-}
+
+## Reset all attributes to the chosen class's starting preset.
+## Called from ClassSelect after the player picks their class.
+func apply_class_preset(class_id: String) -> void:
+	var data: Dictionary = ClassDatabase.get_class_data(class_id)
+	class_type = class_id
+	level = 1
+	xp = 0
+	unspent_attribute_points = 0
+	unspent_skill_points = 0
+	gold = 0
+	essence = 0.0
+	var s: Dictionary = data.get("stats", {})
+	strength = int(s.get("strength", 12))
+	agility = int(s.get("agility", 6))
+	intelligence = int(s.get("intelligence", 4))
+	stamina = int(s.get("stamina", 10))
 
 
 # --- Effective attributes (base + equipment bonus) -------------------
@@ -146,9 +155,10 @@ func gain_xp(amount: int) -> Dictionary:
 
 
 func _auto_allocate(delta: Dictionary) -> void:
-	# Phase 1: auto-allocate based on class preset. Later we'll banked points
-	# for the player to spend in a UI.
-	var preset: Dictionary = AUTO_ALLOCATE.get(class_type, AUTO_ALLOCATE["Guardian"])
+	# Auto-allocate based on the class preset in ClassDatabase.
+	# Later we'll surface the choice via a UI.
+	var class_data: Dictionary = ClassDatabase.get_class_data(class_type)
+	var preset: Dictionary = class_data.get("auto_allocate", {"strength": 2, "stamina": 1})
 	for attr in preset:
 		var amount: int = int(preset[attr])
 		_grant_attr(attr, amount)

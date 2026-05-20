@@ -14,9 +14,11 @@ extends Node3D
 @onready var hitbox_shape: CollisionShape3D = $HitBox/Shape
 
 
-func setup(dmg: float, is_crit: bool = false, override_radius: float = -1.0) -> void:
+func setup(dmg: float, is_crit: bool = false, override_radius: float = -1.0, override_color: Variant = null) -> void:
 	if override_radius > 0.0:
 		radius = override_radius
+	if override_color != null:
+		color = override_color
 	damage = dmg
 	# Size mesh + collision to match radius
 	var mesh := mesh_instance.mesh

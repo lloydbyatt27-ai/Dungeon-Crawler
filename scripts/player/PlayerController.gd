@@ -81,8 +81,35 @@ func _ready() -> void:
 	# If the SaveSystem has a pending payload, overwrite default stats/inventory
 	if SaveSystem.pending_load_data and not SaveSystem.pending_load_data.is_empty():
 		SaveSystem.apply_to_player(self)
+	# Otherwise, apply a freshly-chosen class preset from ClassSelect
+	elif SaveSystem.pending_class != "":
+		stats.apply_class_preset(SaveSystem.pending_class)
+		SaveSystem.pending_class = ""
+		# Re-apply derived resources with the new class's max HP / mana
+		health.set_max_health(stats.max_hp(), true)
+		current_mana = stats.max_mana()
+	# Apply class-specific configuration (body tint + active skills)
+	_apply_class_visuals_and_skills()
 	# Mark the start of a fresh run for the area-complete summary
 	GameState.start_run()
+
+
+func _apply_class_visuals_and_skills() -> void:
+	if stats == null:
+		return
+	var class_data: Dictionary = ClassDatabase.get_class_data(stats.class_type)
+	# Body tint
+	var color: Color = class_data.get("body_color", Color(0.85, 0.55, 0.30))
+	var class_mat := StandardMaterial3D.new()
+	class_mat.albedo_color = color
+	class_mat.metallic_specular = 0.3
+	class_mat.roughness = 0.55
+	body_mesh.set_surface_override_material(0, class_mat)
+	_body_default_material = class_mat
+	# Active skills
+	var skills: Array = class_data.get("starter_skills", ["earthquake", "warcry", "frostbite"])
+	if skill_system:
+		skill_system.set_active_skills(skills)
 
 
 func _physics_process(delta: float) -> void:

@@ -7,6 +7,7 @@ extends Control
 @onready var save_info_label: Label = $Center/VBox/SaveInfo
 
 const DUNGEON_PATH: String = "res://scenes/world/TestDungeon.tscn"
+const CLASS_SELECT_PATH: String = "res://scenes/ui/ClassSelect.tscn"
 
 
 func _ready() -> void:
@@ -25,19 +26,8 @@ func _refresh_save_state() -> void:
 
 
 func _on_new_game() -> void:
-	SaveSystem.delete_save()
-	SaveSystem.pending_load_data = {}
-	# Reset GameState run stats so the area complete screen shows fresh numbers
-	GameState.run_stats = {
-		"monsters_killed": 0,
-		"bosses_defeated": 0,
-		"deaths": 0,
-		"gold_earned_total": 0,
-		"items_collected": 0,
-		"play_time_seconds": 0.0,
-		"dungeons_completed": 0,
-	}
-	get_tree().change_scene_to_file(DUNGEON_PATH)
+	# Go to class select first; that screen handles save deletion + scene change
+	get_tree().change_scene_to_file(CLASS_SELECT_PATH)
 
 
 func _on_continue() -> void:
