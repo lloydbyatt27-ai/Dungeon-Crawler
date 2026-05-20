@@ -7,6 +7,7 @@ extends CanvasLayer
 @onready var dim: ColorRect = $Root/Dim
 @onready var equipment_box: HBoxContainer = $Root/Panel/Margin/VBox/EquipmentBox
 @onready var inventory_grid: GridContainer = $Root/Panel/Margin/VBox/InventoryGrid
+@onready var stats_grid: GridContainer = $Root/Panel/Margin/VBox/StatsGrid
 @onready var gold_label: Label = $Root/Panel/Margin/VBox/HeaderRow/GoldLabel
 @onready var tooltip: PanelContainer = $Root/Tooltip
 @onready var tooltip_label: RichTextLabel = $Root/Tooltip/Margin/Label
@@ -34,6 +35,7 @@ func _bind() -> void:
 		_inventory.items_changed.connect(_refresh)
 		_inventory.equipment_changed.connect(func(_s, _i): _refresh())
 	EventBus.player_gold_changed.connect(_on_gold_changed)
+	EventBus.player_stats_changed.connect(_rebuild_stats)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -78,8 +80,58 @@ func _refresh() -> void:
 		return
 	if _player and _player.stats:
 		gold_label.text = "Gold: %d" % _player.stats.gold
+	_rebuild_stats()
 	_rebuild_equipment()
 	_rebuild_inventory()
+
+
+func _rebuild_stats() -> void:
+	for c in stats_grid.get_children():
+		c.queue_free()
+	if _player == null or _player.stats == null:
+		return
+	var s: CharacterStats = _player.stats
+	# Two columns of (label, value) — GridContainer has 4 cols so each row
+	# is two name/value pairs side-by-side
+	var pairs: Array = [
+		["Level", "%d" % s.level],
+		["XP", "%d / %d" % [s.xp, s.xp_to_next_level()]],
+		["STR", _attr_text(s.strength, s.bonus_strength)],
+		["AGI", _attr_text(s.agility, s.bonus_agility)],
+		["INT", _attr_text(s.intelligence, s.bonus_intelligence)],
+		["STA", _attr_text(s.stamina, s.bonus_stamina)],
+		["Max HP", "%d" % int(s.max_hp())],
+		["Max Mana", "%d" % int(s.max_mana())],
+		["Melee Dmg", "+%.0f%%" % ((s.melee_damage_mult() - 1.0) * 100)],
+		["Ranged Dmg", "+%.0f%%" % ((s.ranged_damage_mult() - 1.0) * 100)],
+		["Spell Dmg", "+%.0f%%" % ((s.spell_damage_mult() - 1.0) * 100)],
+		["Attack Speed", "+%.0f%%" % ((s.attack_speed_mult() - 1.0) * 100)],
+		["Crit Chance", "%.1f%%" % (s.crit_chance() * 100.0)],
+		["Crit Damage", "+%.0f%%" % ((s.crit_damage_mult() - 1.0) * 100.0)],
+		["Dodge", "%.1f%%" % (s.dodge_chance() * 100.0)],
+		["Damage Reduction", "%.1f%%" % (s.damage_reduction() * 100.0)],
+		["HP Regen", "%.1f/s" % s.hp_regen_per_sec()],
+		["Mana Regen", "%.1f/s" % s.mana_regen_per_sec()],
+	]
+	for pair in pairs:
+		var name_label := Label.new()
+		name_label.text = pair[0]
+		name_label.add_theme_color_override("font_color", Color(0.72, 0.72, 0.78))
+		name_label.add_theme_font_size_override("font_size", 12)
+		stats_grid.add_child(name_label)
+		var val_label := Label.new()
+		val_label.text = pair[1]
+		val_label.add_theme_color_override("font_color", Color(1, 1, 1))
+		val_label.add_theme_font_size_override("font_size", 12)
+		stats_grid.add_child(val_label)
+
+
+func _attr_text(base: int, bonus: int) -> String:
+	if bonus > 0:
+		return "%d  (+%d)" % [base + bonus, bonus]
+	if bonus < 0:
+		return "%d  (%d)" % [base + bonus, bonus]
+	return "%d" % base
 
 
 func _rebuild_equipment() -> void:
