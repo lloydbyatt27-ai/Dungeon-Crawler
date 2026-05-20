@@ -6,7 +6,7 @@ extends Node
 signal game_paused(is_paused: bool)
 signal zone_changed(new_zone_id: String)
 
-var current_character = null  # Will hold Character resource once defined
+var current_character = null
 var current_zone_id: String = "test_arena"
 var is_paused: bool = false
 
@@ -17,7 +17,19 @@ var run_stats: Dictionary = {
 	"gold_earned_total": 0,
 	"items_collected": 0,
 	"play_time_seconds": 0.0,
+	"dungeons_completed": 0,
 }
+
+# Snapshot of run_stats at the start of the current dungeon, used by the
+# Area Complete summary screen to compute deltas.
+var _run_start_snapshot: Dictionary = {}
+var _last_gold_total: int = 0
+
+
+func _ready() -> void:
+	EventBus.enemy_died.connect(_on_enemy_died)
+	EventBus.item_picked_up.connect(_on_item_picked_up)
+	EventBus.player_gold_changed.connect(_on_gold_changed)
 
 
 func _process(delta: float) -> void:
@@ -34,3 +46,34 @@ func toggle_pause() -> void:
 func change_zone(zone_id: String) -> void:
 	current_zone_id = zone_id
 	zone_changed.emit(zone_id)
+
+
+# --- Run tracking ----------------------------------------------------
+
+func start_run() -> void:
+	# Snapshot current stats so we can compute deltas at run end.
+	_run_start_snapshot = run_stats.duplicate(true)
+	_last_gold_total = 0
+
+
+func run_delta(key: String) -> float:
+	var current: float = run_stats.get(key, 0.0)
+	var snap: float = _run_start_snapshot.get(key, 0.0)
+	return current - snap
+
+
+func _on_enemy_died(enemy: Node, _pos: Vector3) -> void:
+	run_stats.monsters_killed += 1
+	if enemy and "is_boss" in enemy and enemy.is_boss:
+		run_stats.bosses_defeated += 1
+
+
+func _on_item_picked_up(_item) -> void:
+	run_stats.items_collected += 1
+
+
+func _on_gold_changed(new_total: int) -> void:
+	var diff: int = new_total - _last_gold_total
+	if diff > 0:
+		run_stats.gold_earned_total += diff
+	_last_gold_total = new_total

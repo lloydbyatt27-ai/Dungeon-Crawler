@@ -26,6 +26,7 @@ signal item_equipped(item, slot: String)
 signal interactable_in_range(node: Node)
 signal interactable_out_of_range(node: Node)
 signal dungeon_completed(zone_id: String)
+signal boss_defeated(boss: Node)
 
 # --- UI ---
 signal show_damage_number(amount: float, position: Vector3, is_crit: bool)

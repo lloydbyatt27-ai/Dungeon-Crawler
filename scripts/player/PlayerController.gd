@@ -78,6 +78,11 @@ func _ready() -> void:
 	health.damaged.connect(_on_damaged)
 	# Listen for enemy deaths so we gain XP
 	EventBus.enemy_died.connect(_on_enemy_died)
+	# If the SaveSystem has a pending payload, overwrite default stats/inventory
+	if SaveSystem.pending_load_data and not SaveSystem.pending_load_data.is_empty():
+		SaveSystem.apply_to_player(self)
+	# Mark the start of a fresh run for the area-complete summary
+	GameState.start_run()
 
 
 func _physics_process(delta: float) -> void:

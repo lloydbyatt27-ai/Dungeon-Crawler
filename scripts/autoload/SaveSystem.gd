@@ -1,0 +1,164 @@
+extends Node
+## File-based save/load. JSON in user://savegame.json.
+## Phase 1: single-slot, single-character save.
+##
+## Save shape:
+## {
+##   "version": 1,
+##   "stats": { ...CharacterStats fields... },
+##   "equipment": { "weapon": "item_id", "offhand": null, "armor": "..." },
+##   "inventory": ["item_id", "item_id", ...],
+##   "stats_runtime": { "current_hp": float, "current_mana": float },
+##   "dungeons_completed": int,
+##   "play_time_seconds": float
+## }
+
+const SAVE_PATH: String = "user://savegame.json"
+const VERSION: int = 1
+
+# Cached deserialized save (set by load_save), applied to the next player spawn.
+var pending_load_data: Dictionary = {}
+
+# Run-level transient state used by the area-complete screen
+var run_summary: Dictionary = {}
+
+
+func has_save() -> bool:
+	return FileAccess.file_exists(SAVE_PATH)
+
+
+func save_player(player: PlayerController) -> bool:
+	if player == null or player.stats == null:
+		return false
+	var data := _serialize_player(player)
+	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if f == null:
+		push_error("Could not open save file for writing: " + SAVE_PATH)
+		return false
+	f.store_string(JSON.stringify(data, "\t"))
+	f.close()
+	print("[SaveSystem] Saved to %s" % SAVE_PATH)
+	return true
+
+
+func load_save() -> bool:
+	if not has_save():
+		return false
+	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	if f == null:
+		return false
+	var text := f.get_as_text()
+	f.close()
+	var parsed = JSON.parse_string(text)
+	if not parsed is Dictionary:
+		push_error("[SaveSystem] Save file is corrupt or empty")
+		return false
+	pending_load_data = parsed
+	return true
+
+
+func apply_to_player(player: PlayerController) -> bool:
+	if pending_load_data.is_empty() or player == null:
+		return false
+	_deserialize_into_player(player, pending_load_data)
+	pending_load_data = {}
+	return true
+
+
+func delete_save() -> void:
+	if has_save():
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+
+
+# --- Serialization --------------------------------------------------
+
+func _serialize_player(player: PlayerController) -> Dictionary:
+	var s: CharacterStats = player.stats
+	var inv: Inventory = player.get_node_or_null("Inventory") as Inventory
+	var data: Dictionary = {
+		"version": VERSION,
+		"stats": {
+			"class_type": s.class_type,
+			"character_name": s.character_name,
+			"level": s.level,
+			"xp": s.xp,
+			"strength": s.strength,
+			"agility": s.agility,
+			"intelligence": s.intelligence,
+			"stamina": s.stamina,
+			"gold": s.gold,
+			"essence": s.essence,
+			"unspent_attribute_points": s.unspent_attribute_points,
+			"unspent_skill_points": s.unspent_skill_points,
+		},
+		"runtime": {
+			"current_hp": player.health.current_health if player.health else 0.0,
+			"current_mana": player.current_mana,
+		},
+		"equipment": {},
+		"inventory": [],
+		"play_time_seconds": GameState.run_stats.get("play_time_seconds", 0.0),
+		"dungeons_completed": GameState.run_stats.get("dungeons_completed", 0),
+	}
+	if inv:
+		for slot in Inventory.SLOTS:
+			var item: Item = inv.equipment[slot]
+			data.equipment[slot] = item.item_id if item else ""
+		for it in inv.items:
+			data.inventory.append(it.item_id)
+	return data
+
+
+func _deserialize_into_player(player: PlayerController, data: Dictionary) -> void:
+	if not data.has("stats"):
+		return
+	var s: CharacterStats = player.stats
+	var sd: Dictionary = data.stats
+	s.class_type = sd.get("class_type", "Guardian")
+	s.character_name = sd.get("character_name", "Hero")
+	s.level = int(sd.get("level", 1))
+	s.xp = int(sd.get("xp", 0))
+	s.strength = int(sd.get("strength", 12))
+	s.agility = int(sd.get("agility", 6))
+	s.intelligence = int(sd.get("intelligence", 4))
+	s.stamina = int(sd.get("stamina", 10))
+	s.gold = int(sd.get("gold", 0))
+	s.essence = float(sd.get("essence", 0.0))
+	s.unspent_attribute_points = int(sd.get("unspent_attribute_points", 0))
+	s.unspent_skill_points = int(sd.get("unspent_skill_points", 0))
+
+	# Restore inventory (must happen before equip so refresh_stats is correct)
+	var inv: Inventory = player.get_node_or_null("Inventory") as Inventory
+	if inv:
+		inv.items.clear()
+		for slot in Inventory.SLOTS:
+			inv.equipment[slot] = null
+		# Inventory items
+		for item_id in data.get("inventory", []):
+			var item := ItemDatabase.create_by_id(item_id)
+			if item:
+				inv.items.append(item)
+		# Equipped items
+		var eq: Dictionary = data.get("equipment", {})
+		for slot in Inventory.SLOTS:
+			var item_id: String = eq.get(slot, "")
+			if item_id != "":
+				var item := ItemDatabase.create_by_id(item_id)
+				if item:
+					inv.equipment[slot] = item
+		inv._refresh_stats()
+		inv.items_changed.emit()
+
+	# Runtime resources (apply after equipment so maxes are correct)
+	var rd: Dictionary = data.get("runtime", {})
+	if player.health:
+		player.health.set_max_health(s.max_hp(), false)
+		var current_hp = clamp(float(rd.get("current_hp", s.max_hp())), 1.0, s.max_hp())
+		player.health.current_health = current_hp
+		player.health.is_dead = false
+		player.health.health_changed.emit(current_hp, s.max_hp())
+	player.current_mana = clamp(float(rd.get("current_mana", s.max_mana())), 0.0, s.max_mana())
+
+	# Gold UI refresh
+	EventBus.player_gold_changed.emit(s.gold)
+	EventBus.player_stats_changed.emit()

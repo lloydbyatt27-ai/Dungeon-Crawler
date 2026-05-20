@@ -1,0 +1,260 @@
+[gd_scene load_steps=16 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
+[ext_resource type="Script" path="res://scripts/world/IsometricCamera.gd" id="2_camera"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/Goblin.tscn" id="3_goblin"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/GoblinChief.tscn" id="4_chief"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="5_hud"]
+[ext_resource type="Script" path="res://scripts/ui/DamageNumberSpawner.gd" id="6_spawner"]
+[ext_resource type="PackedScene" path="res://scenes/ui/DamageNumber.tscn" id="7_dmgnum"]
+[ext_resource type="PackedScene" path="res://scenes/ui/InventoryUI.tscn" id="8_invui"]
+[ext_resource type="PackedScene" path="res://scenes/world/TreasureChest.tscn" id="9_chest"]
+[ext_resource type="PackedScene" path="res://scenes/ui/AreaCompleteScreen.tscn" id="10_area"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
+size = Vector2(30, 100)
+subdivide_width = 6
+subdivide_depth = 20
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+albedo_color = Color(0.22, 0.21, 0.20, 1)
+roughness = 0.95
+uv1_scale = Vector3(6, 20, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(30, 0.2, 100)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall"]
+size = Vector3(1, 1, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wall"]
+albedo_color = Color(0.36, 0.32, 0.28, 1)
+roughness = 0.85
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_wall"]
+size = Vector3(1, 1, 1)
+
+[node name="TestDungeon" type="Node3D"]
+
+[node name="World" type="Node3D" parent="."]
+
+[node name="Floor" type="StaticBody3D" parent="World"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -25)
+collision_layer = 1
+collision_mask = 0
+
+[node name="FloorMesh" type="MeshInstance3D" parent="World/Floor"]
+mesh = SubResource("PlaneMesh_floor")
+surface_material_override/0 = SubResource("StandardMaterial3D_floor")
+
+[node name="FloorCollision" type="CollisionShape3D" parent="World/Floor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+shape = SubResource("BoxShape3D_floor")
+
+[node name="OuterWalls" type="Node3D" parent="World"]
+
+[node name="SouthWall" type="StaticBody3D" parent="World/OuterWalls"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="World/OuterWalls/SouthWall"]
+transform = Transform3D(30, 0, 0, 0, 3, 0, 0, 0, 1, 0, 1.5, 25)
+mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="World/OuterWalls/SouthWall"]
+transform = Transform3D(30, 0, 0, 0, 3, 0, 0, 0, 1, 0, 1.5, 25)
+shape = SubResource("BoxShape3D_wall")
+
+[node name="NorthWall" type="StaticBody3D" parent="World/OuterWalls"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="World/OuterWalls/NorthWall"]
+transform = Transform3D(30, 0, 0, 0, 3, 0, 0, 0, 1, 0, 1.5, -75)
+mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="World/OuterWalls/NorthWall"]
+transform = Transform3D(30, 0, 0, 0, 3, 0, 0, 0, 1, 0, 1.5, -75)
+shape = SubResource("BoxShape3D_wall")
+
+[node name="WestWall" type="StaticBody3D" parent="World/OuterWalls"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="World/OuterWalls/WestWall"]
+transform = Transform3D(1, 0, 0, 0, 3, 0, 0, 0, 100, -15, 1.5, -25)
+mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="World/OuterWalls/WestWall"]
+transform = Transform3D(1, 0, 0, 0, 3, 0, 0, 0, 100, -15, 1.5, -25)
+shape = SubResource("BoxShape3D_wall")
+
+[node name="EastWall" type="StaticBody3D" parent="World/OuterWalls"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="World/OuterWalls/EastWall"]
+transform = Transform3D(1, 0, 0, 0, 3, 0, 0, 0, 100, 15, 1.5, -25)
+mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="World/OuterWalls/EastWall"]
+transform = Transform3D(1, 0, 0, 0, 3, 0, 0, 0, 100, 15, 1.5, -25)
+shape = SubResource("BoxShape3D_wall")
+
+[node name="Dividers" type="Node3D" parent="World"]
+
+[node name="Divider1Left" type="StaticBody3D" parent="World/Dividers"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="World/Dividers/Divider1Left"]
+transform = Transform3D(12, 0, 0, 0, 3, 0, 0, 0, 1, -9, 1.5, 0)
+mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="World/Dividers/Divider1Left"]
+transform = Transform3D(12, 0, 0, 0, 3, 0, 0, 0, 1, -9, 1.5, 0)
+shape = SubResource("BoxShape3D_wall")
+
+[node name="Divider1Right" type="StaticBody3D" parent="World/Dividers"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="World/Dividers/Divider1Right"]
+transform = Transform3D(12, 0, 0, 0, 3, 0, 0, 0, 1, 9, 1.5, 0)
+mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="World/Dividers/Divider1Right"]
+transform = Transform3D(12, 0, 0, 0, 3, 0, 0, 0, 1, 9, 1.5, 0)
+shape = SubResource("BoxShape3D_wall")
+
+[node name="Divider2Left" type="StaticBody3D" parent="World/Dividers"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="World/Dividers/Divider2Left"]
+transform = Transform3D(12, 0, 0, 0, 3, 0, 0, 0, 1, -9, 1.5, -22)
+mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="World/Dividers/Divider2Left"]
+transform = Transform3D(12, 0, 0, 0, 3, 0, 0, 0, 1, -9, 1.5, -22)
+shape = SubResource("BoxShape3D_wall")
+
+[node name="Divider2Right" type="StaticBody3D" parent="World/Dividers"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="World/Dividers/Divider2Right"]
+transform = Transform3D(12, 0, 0, 0, 3, 0, 0, 0, 1, 9, 1.5, -22)
+mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="World/Dividers/Divider2Right"]
+transform = Transform3D(12, 0, 0, 0, 3, 0, 0, 0, 1, 9, 1.5, -22)
+shape = SubResource("BoxShape3D_wall")
+
+[node name="Divider3Left" type="StaticBody3D" parent="World/Dividers"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="World/Dividers/Divider3Left"]
+transform = Transform3D(12, 0, 0, 0, 3, 0, 0, 0, 1, -9, 1.5, -45)
+mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="World/Dividers/Divider3Left"]
+transform = Transform3D(12, 0, 0, 0, 3, 0, 0, 0, 1, -9, 1.5, -45)
+shape = SubResource("BoxShape3D_wall")
+
+[node name="Divider3Right" type="StaticBody3D" parent="World/Dividers"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="World/Dividers/Divider3Right"]
+transform = Transform3D(12, 0, 0, 0, 3, 0, 0, 0, 1, 9, 1.5, -45)
+mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="World/Dividers/Divider3Right"]
+transform = Transform3D(12, 0, 0, 0, 3, 0, 0, 0, 1, 9, 1.5, -45)
+shape = SubResource("BoxShape3D_wall")
+
+[node name="Enemies" type="Node3D" parent="."]
+
+[node name="Goblin1" parent="Enemies" instance=ExtResource("3_goblin")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -12)
+
+[node name="Goblin2" parent="Enemies" instance=ExtResource("3_goblin")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, -12)
+
+[node name="Goblin3" parent="Enemies" instance=ExtResource("3_goblin")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, -33)
+
+[node name="Goblin4" parent="Enemies" instance=ExtResource("3_goblin")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -36)
+
+[node name="Goblin5" parent="Enemies" instance=ExtResource("3_goblin")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, -33)
+
+[node name="Boss" parent="Enemies" instance=ExtResource("4_chief")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -65)
+
+[node name="TreasureChest" parent="." instance=ExtResource("9_chest")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, -40)
+
+[node name="Lighting" type="Node3D" parent="."]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Lighting"]
+transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 10, 0)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.85
+shadow_enabled = true
+directional_shadow_mode = 1
+directional_shadow_max_distance = 80.0
+
+[node name="EntryLight" type="OmniLight3D" parent="Lighting"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 12)
+light_color = Color(1, 0.85, 0.55, 1)
+light_energy = 1.2
+omni_range = 14.0
+
+[node name="Room2Light" type="OmniLight3D" parent="Lighting"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -11)
+light_color = Color(1, 0.85, 0.55, 1)
+light_energy = 1.0
+omni_range = 14.0
+
+[node name="Room3Light" type="OmniLight3D" parent="Lighting"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -33)
+light_color = Color(1, 0.85, 0.55, 1)
+light_energy = 1.0
+omni_range = 14.0
+
+[node name="BossLight" type="OmniLight3D" parent="Lighting"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -62)
+light_color = Color(1, 0.4, 0.2, 1)
+light_energy = 1.6
+omni_range = 18.0
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 18)
+
+[node name="IsometricCamera" type="Camera3D" parent="."]
+script = ExtResource("2_camera")
+target_path = NodePath("../Player")
+
+[node name="DamageNumberSpawner" type="Node" parent="."]
+script = ExtResource("6_spawner")
+damage_number_scene = ExtResource("7_dmgnum")
+
+[node name="HUD" parent="." instance=ExtResource("5_hud")]
+
+[node name="InventoryUI" parent="." instance=ExtResource("8_invui")]
+
+[node name="AreaCompleteScreen" parent="." instance=ExtResource("10_area")]

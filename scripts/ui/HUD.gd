@@ -152,14 +152,15 @@ func _flash_hp_bar() -> void:
 
 func _on_player_died() -> void:
 	death_overlay.visible = true
+	GameState.run_stats.deaths += 1
 	var tween := create_tween()
 	tween.tween_property(death_overlay, "modulate:a", 1.0, 0.8)
 	tween.tween_interval(1.5)
-	tween.tween_callback(_reload_scene)
+	tween.tween_callback(_to_main_menu)
 
 
-func _reload_scene() -> void:
-	get_tree().reload_current_scene()
+func _to_main_menu() -> void:
+	get_tree().change_scene_to_file("res://scenes/ui/MainMenu.tscn")
 
 
 func _on_gold_changed(new_total: int) -> void:

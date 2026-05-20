@@ -62,6 +62,12 @@ const ITEM_TEMPLATES: Array = [
 	{ "id": "tower_shield", "name": "Tower Shield", "type": "OFFHAND", "rarity": "RARE",
 	  "armor": 18.0, "max_hp_bonus": 45.0, "stamina_bonus": 2, "strength_bonus": 1,
 	  "description": "A wall of iron between you and the world." },
+
+	# --- Boss-locked LEGENDARY drops ---
+	{ "id": "chieftains_cleaver", "name": "Chieftain's Cleaver", "type": "WEAPON", "rarity": "LEGENDARY",
+	  "weapon_damage": 28.0, "strength_bonus": 5, "stamina_bonus": 2,
+	  "crit_chance_bonus": 0.08, "crit_damage_bonus": 0.40,
+	  "description": "Pried from the hands of a goblin chief. Still warm." },
 ]
 
 const RARITY_WEIGHTS: Dictionary = {

@@ -31,6 +31,14 @@ extends CharacterBody3D
 @export var acceleration: float = 28.0
 @export var friction: float = 22.0
 @export var rotation_speed: float = 10.0
+@export_group("Boss")
+@export var is_boss: bool = false
+@export var display_name: String = ""
+@export_range(0.0, 1.0) var phase_2_hp_threshold: float = 0.5
+@export var phase_2_speed_mult: float = 1.4
+@export var phase_2_damage_mult: float = 1.3
+@export var phase_2_cooldown_mult: float = 0.7
+@export var guaranteed_drop_id: String = ""
 @export_group("Perception")
 @export var aggro_range: float = 12.0
 @export var leash_range: float = 18.0
@@ -42,6 +50,7 @@ var state: State = State.IDLE
 var _state_timer: float = 0.0
 var _attack_cd: float = 0.0
 var _facing_dir: Vector3 = Vector3.FORWARD
+var _phase: int = 1
 
 @onready var health: Health = $Health
 @onready var hurtbox: HurtBox = $HurtBox
@@ -207,9 +216,15 @@ func _on_damaged(info: DamageInfo) -> void:
 		return
 	EventBus.show_damage_number.emit(info.amount, global_position, info.is_crit)
 	_flash_white()
-	# Interrupt attacks if hit during windup or active
-	if state in [State.TELEGRAPH, State.ACTIVE]:
+	# Interrupt attacks if hit during windup or active (bosses get super armor in phase 2)
+	var interruptible := true
+	if is_boss and _phase >= 2:
+		interruptible = false
+	if interruptible and state in [State.TELEGRAPH, State.ACTIVE]:
 		_enter(State.STAGGER)
+	# Boss phase transition
+	if is_boss and _phase == 1 and health.health_percent() <= phase_2_hp_threshold:
+		_enter_phase_2()
 
 
 func _on_died() -> void:
@@ -219,6 +234,8 @@ func _on_died() -> void:
 	telegraph_mesh.visible = false
 	_drop_loot()
 	EventBus.enemy_died.emit(self, global_position)
+	if is_boss:
+		EventBus.boss_defeated.emit(self)
 	# Fall over and fade out
 	_die_animation()
 
@@ -232,14 +249,46 @@ func _drop_loot() -> void:
 			get_tree().current_scene.add_child(pile)
 			pile.amount = amount
 			pile.global_position = global_position + Vector3(0, 0.5, 0)
-	# Item
+	# Random item
 	if item_pickup_scene and randf() < item_drop_chance:
 		var item := ItemDatabase.generate_random_item(1)
 		if item:
-			var pickup := item_pickup_scene.instantiate()
-			get_tree().current_scene.add_child(pickup)
-			pickup.global_position = global_position + Vector3(0, 0.6, 0)
-			pickup.setup(item)
+			_spawn_item_pickup(item)
+	# Guaranteed boss drop
+	if is_boss and guaranteed_drop_id != "":
+		var unique := ItemDatabase.create_by_id(guaranteed_drop_id)
+		if unique:
+			_spawn_item_pickup(unique, Vector3(randf_range(-0.6, 0.6), 0.6, randf_range(-0.6, 0.6)))
+
+
+func _spawn_item_pickup(item: Item, offset: Vector3 = Vector3(0, 0.6, 0)) -> void:
+	if item_pickup_scene == null:
+		return
+	var pickup := item_pickup_scene.instantiate()
+	get_tree().current_scene.add_child(pickup)
+	pickup.global_position = global_position + offset
+	pickup.setup(item)
+
+
+func _enter_phase_2() -> void:
+	_phase = 2
+	move_speed *= phase_2_speed_mult
+	attack_damage *= phase_2_damage_mult
+	attack_cooldown *= phase_2_cooldown_mult
+	telegraph_duration *= 0.75  # faster telegraph too
+	# Visual: glow red
+	var enrage_mat := StandardMaterial3D.new()
+	enrage_mat.albedo_color = Color(1.0, 0.4, 0.2)
+	enrage_mat.emission_enabled = true
+	enrage_mat.emission = Color(1.0, 0.2, 0.1)
+	enrage_mat.emission_energy_multiplier = 0.8
+	body_mesh.set_surface_override_material(0, enrage_mat)
+	_body_default_material = enrage_mat
+	EventBus.show_floating_text.emit(
+		"ENRAGED!" if display_name == "" else display_name.to_upper() + " ENRAGED!",
+		global_position + Vector3(0, 2.5, 0),
+		Color(1.0, 0.3, 0.1)
+	)
 
 
 func _die_animation() -> void:
