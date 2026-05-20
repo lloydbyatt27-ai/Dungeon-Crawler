@@ -1,0 +1,125 @@
+[gd_scene load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/BaseEnemy.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/combat/Health.gd" id="2_health"]
+[ext_resource type="Script" path="res://scripts/combat/HurtBox.gd" id="3_hurtbox"]
+[ext_resource type="Script" path="res://scripts/combat/HitBox.gd" id="4_hitbox"]
+[ext_resource type="PackedScene" path="res://scenes/pickups/GoldPickup.tscn" id="5_gold"]
+[ext_resource type="PackedScene" path="res://scenes/pickups/ItemPickup.tscn" id="6_item"]
+[ext_resource type="PackedScene" path="res://scenes/pickups/EssencePickup.tscn" id="7_essence"]
+[ext_resource type="PackedScene" path="res://scenes/skills/EarthquakeEffect.tscn" id="8_aoe"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
+radius = 0.32
+height = 1.5
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_body"]
+radius = 0.32
+height = 1.5
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
+albedo_color = Color(0.78, 0.75, 0.65, 1)
+roughness = 0.5
+metallic_specular = 0.4
+
+[sub_resource type="SphereMesh" id="SphereMesh_eyes"]
+radius = 0.08
+height = 0.16
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eyes"]
+albedo_color = Color(0.5, 0.85, 1, 1)
+emission_enabled = true
+emission = Color(0.55, 0.9, 1, 1)
+emission_energy_multiplier = 3.0
+
+[sub_resource type="BoxMesh" id="BoxMesh_telegraph"]
+size = Vector3(2.4, 0.05, 2.4)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_telegraph"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.55, 0.85, 1, 0.4)
+emission_enabled = true
+emission = Color(0.5, 0.9, 1, 1)
+emission_energy_multiplier = 1.2
+
+[node name="SkeletonMage" type="CharacterBody3D" groups=["enemy"]]
+collision_layer = 4
+collision_mask = 1
+script = ExtResource("1_enemy")
+archetype = 2
+optimal_range_min = 7.0
+optimal_range_max = 12.0
+aoe_radius = 3.2
+aoe_color = Color(0.55, 0.9, 1, 1)
+enemy_aoe_scene = ExtResource("8_aoe")
+xp_value = 45
+gold_min = 5
+gold_max = 13
+item_drop_chance = 0.22
+essence_value = 9.0
+essence_drop_chance = 0.8
+gold_pickup_scene = ExtResource("5_gold")
+item_pickup_scene = ExtResource("6_item")
+essence_pickup_scene = ExtResource("7_essence")
+attack_damage = 20.0
+attack_range = 14.0
+attack_cooldown = 3.0
+telegraph_duration = 1.0
+active_duration = 0.15
+recovery_duration = 0.65
+move_speed = 3.8
+aggro_range = 16.0
+leash_range = 24.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
+shape = SubResource("CapsuleShape3D_body")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
+mesh = SubResource("CapsuleMesh_body")
+surface_material_override/0 = SubResource("StandardMaterial3D_body")
+
+[node name="EyeLeft" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, 1.25, -0.28)
+mesh = SubResource("SphereMesh_eyes")
+surface_material_override/0 = SubResource("StandardMaterial3D_eyes")
+
+[node name="EyeRight" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, 1.25, -0.28)
+mesh = SubResource("SphereMesh_eyes")
+surface_material_override/0 = SubResource("StandardMaterial3D_eyes")
+
+[node name="TelegraphMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
+visible = false
+mesh = SubResource("BoxMesh_telegraph")
+surface_material_override/0 = SubResource("StandardMaterial3D_telegraph")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("2_health")
+max_health = 55.0
+
+[node name="HurtBox" type="Area3D" parent="."]
+collision_layer = 4
+collision_mask = 0
+script = ExtResource("3_hurtbox")
+health_path = NodePath("../Health")
+team = 2
+
+[node name="HurtBoxShape" type="CollisionShape3D" parent="HurtBox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
+shape = SubResource("CapsuleShape3D_body")
+
+[node name="AttackHitBox" type="Area3D" parent="."]
+collision_layer = 16
+collision_mask = 2
+monitoring = false
+monitorable = false
+script = ExtResource("4_hitbox")
+team = 2
+damage = 20.0
+
+[node name="AttackHitShape" type="CollisionShape3D" parent="AttackHitBox"]
+shape = SubResource("CapsuleShape3D_body")

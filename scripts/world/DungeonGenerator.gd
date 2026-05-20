@@ -9,6 +9,9 @@ extends Node3D
 ## graph stays clean — clearing this node clears the whole dungeon.
 
 @export var goblin_scene: PackedScene
+@export var goblin_archer_scene: PackedScene
+@export var skeleton_mage_scene: PackedScene
+@export var orc_brute_scene: PackedScene
 @export var goblin_chief_scene: PackedScene
 @export var chest_scene: PackedScene
 @export var wall_material: Material
@@ -227,14 +230,15 @@ func _build_divider(z: float, room_width: float) -> void:
 # --- Entity population ----------------------------------------------
 
 func _populate_room(center: Vector3, size: Vector2, spec: Dictionary) -> void:
-	# Enemies
+	# Enemies — rolled from a weighted pool so rooms mix archetypes
 	var n_enemies: int = spec.get("enemies", 0)
 	for j in range(n_enemies):
-		if goblin_scene == null:
+		var enemy_scene := _pick_enemy_scene()
+		if enemy_scene == null:
 			break
-		var goblin := goblin_scene.instantiate()
-		add_child(goblin)
-		goblin.global_position = center + Vector3(
+		var enemy := enemy_scene.instantiate()
+		add_child(enemy)
+		enemy.global_position = center + Vector3(
 			_rng.randf_range(-size.x * 0.35, size.x * 0.35),
 			0.0,
 			_rng.randf_range(-size.y * 0.35, size.y * 0.35)
@@ -253,6 +257,27 @@ func _populate_room(center: Vector3, size: Vector2, spec: Dictionary) -> void:
 			0.0,
 			_rng.randf_range(-size.y * 0.15, size.y * 0.15)
 		)
+
+
+# Weighted pool of enemy scenes for combat rooms.
+func _pick_enemy_scene() -> PackedScene:
+	var pool: Array = []
+	if goblin_scene:        pool.append({"scene": goblin_scene,        "weight": 50})
+	if goblin_archer_scene: pool.append({"scene": goblin_archer_scene, "weight": 25})
+	if skeleton_mage_scene: pool.append({"scene": skeleton_mage_scene, "weight": 15})
+	if orc_brute_scene:     pool.append({"scene": orc_brute_scene,     "weight": 10})
+	if pool.is_empty():
+		return null
+	var total := 0
+	for e in pool:
+		total += int(e.weight)
+	var roll := _rng.randi_range(0, total - 1)
+	var accum := 0
+	for e in pool:
+		accum += int(e.weight)
+		if roll < accum:
+			return e.scene
+	return pool[0].scene
 
 
 # --- Finalize -------------------------------------------------------

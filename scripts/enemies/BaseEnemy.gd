@@ -10,14 +10,26 @@ extends CharacterBody3D
 ## Hit while attacking → STAGGER → AGGRO (interrupts swing).
 ## Health.died → DEAD.
 
+enum Archetype { RUSHER, RANGER, CASTER }
+
 # Stats
+@export_group("AI")
+@export var archetype: Archetype = Archetype.RUSHER
+@export var optimal_range_min: float = 0.0   # rangers/casters kite away if closer than this
+@export var optimal_range_max: float = 2.0   # rushers stop chasing past attack_range
+@export var projectile_speed: float = 14.0
+@export var projectile_color: Color = Color(1.0, 0.3, 0.2)
+@export var aoe_radius: float = 3.0
+@export var aoe_color: Color = Color(0.8, 0.25, 0.7)
+@export var enemy_projectile_scene: PackedScene
+@export var enemy_aoe_scene: PackedScene
 @export_group("Reward")
 @export var xp_value: int = 30
 @export var gold_min: int = 3
 @export var gold_max: int = 9
 @export var item_drop_chance: float = 0.20
-@export var essence_value: float = 5.0   # essence dropped on death (0 = none)
-@export var essence_drop_chance: float = 0.7  # chance to drop essence
+@export var essence_value: float = 5.0
+@export var essence_drop_chance: float = 0.7
 @export var gold_pickup_scene: PackedScene
 @export var item_pickup_scene: PackedScene
 @export var essence_pickup_scene: PackedScene
@@ -34,8 +46,9 @@ extends CharacterBody3D
 @export var acceleration: float = 28.0
 @export var friction: float = 22.0
 @export var rotation_speed: float = 10.0
-@export_group("Boss")
-@export var is_boss: bool = false
+@export_group("Boss / Enrage")
+@export var is_boss: bool = false              # triggers Area Complete + legendary drop
+@export var has_enrage_phase: bool = false     # enables phase-2 transition (independent of is_boss)
 @export var display_name: String = ""
 @export_range(0.0, 1.0) var phase_2_hp_threshold: float = 0.5
 @export var phase_2_speed_mult: float = 1.4
@@ -55,6 +68,11 @@ var _attack_cd: float = 0.0
 var _facing_dir: Vector3 = Vector3.FORWARD
 var _phase: int = 1
 
+# Caster telegraph: anchor to a world position instead of in front of the enemy
+var _telegraph_anchored: bool = false
+var _telegraph_world_anchor: Vector3 = Vector3.ZERO
+var _telegraph_default_scale: Vector3 = Vector3.ONE
+
 @onready var health: Health = $Health
 @onready var hurtbox: HurtBox = $HurtBox
 @onready var attack_hitbox: HitBox = $AttackHitBox
@@ -73,6 +91,7 @@ func _ready() -> void:
 	telegraph_mesh.visible = false
 	attack_hitbox.deactivate()
 	_body_default_material = body_mesh.get_surface_override_material(0)
+	_telegraph_default_scale = telegraph_mesh.scale
 
 	var players := get_tree().get_nodes_in_group("player")
 	if players.size() > 0:
@@ -137,15 +156,34 @@ func _tick_aggro(delta: float) -> void:
 	if dist > leash_range:
 		_enter(State.IDLE)
 		return
-	if dist <= attack_range and _attack_cd <= 0.0:
+
+	var in_zone := false
+	var move_dir := Vector3.ZERO
+
+	match archetype:
+		Archetype.RUSHER:
+			in_zone = dist <= attack_range
+			if not in_zone:
+				move_dir = _player.global_position - global_position
+		Archetype.RANGER, Archetype.CASTER:
+			in_zone = dist >= optimal_range_min and dist <= optimal_range_max
+			if dist < optimal_range_min:
+				move_dir = global_position - _player.global_position   # back away
+			elif dist > optimal_range_max:
+				move_dir = _player.global_position - global_position   # close in
+
+	if in_zone and _attack_cd <= 0.0:
 		_enter(State.TELEGRAPH)
 		return
 
-	var to_player := _player.global_position - global_position
-	to_player.y = 0
-	var dir := to_player.normalized()
-	velocity.x = move_toward(velocity.x, dir.x * move_speed, acceleration * delta)
-	velocity.z = move_toward(velocity.z, dir.z * move_speed, acceleration * delta)
+	move_dir.y = 0
+	if move_dir.length_squared() > 0.01:
+		var d := move_dir.normalized()
+		velocity.x = move_toward(velocity.x, d.x * move_speed, acceleration * delta)
+		velocity.z = move_toward(velocity.z, d.z * move_speed, acceleration * delta)
+	else:
+		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
+		velocity.z = move_toward(velocity.z, 0.0, friction * delta)
 
 
 func _tick_telegraph(_delta: float) -> void:
@@ -158,6 +196,9 @@ func _tick_telegraph(_delta: float) -> void:
 		var sm: StandardMaterial3D = mat
 		sm.albedo_color.a = 0.35 + 0.45 * t
 		sm.emission_energy_multiplier = 0.5 + 1.5 * t
+	# Keep the caster's warning circle pinned to its locked world position
+	if _telegraph_anchored:
+		telegraph_mesh.global_position = _telegraph_world_anchor
 	if _state_timer <= 0.0:
 		_enter(State.ACTIVE)
 
@@ -190,6 +231,9 @@ func _enter(new_state: State) -> void:
 	match state:
 		State.TELEGRAPH:
 			telegraph_mesh.visible = false
+			if archetype == Archetype.CASTER:
+				_telegraph_anchored = false
+				telegraph_mesh.scale = _telegraph_default_scale
 		State.ACTIVE:
 			attack_hitbox.deactivate()
 
@@ -204,9 +248,19 @@ func _enter(new_state: State) -> void:
 		State.TELEGRAPH:
 			_state_timer = telegraph_duration
 			telegraph_mesh.visible = true
+			# Caster locks the warning circle to the player's position at telegraph start
+			if archetype == Archetype.CASTER and _player:
+				_telegraph_anchored = true
+				_telegraph_world_anchor = _player.global_position
+				_telegraph_world_anchor.y = 0.05
+				var s: float = aoe_radius * 1.4
+				telegraph_mesh.scale = Vector3(s, 1.0, s)
 		State.ACTIVE:
 			_state_timer = active_duration
-			attack_hitbox.activate(attack_damage)
+			match archetype:
+				Archetype.RUSHER:  attack_hitbox.activate(attack_damage)
+				Archetype.RANGER:  _fire_projectile_attack()
+				Archetype.CASTER:  _drop_aoe_attack()
 		State.RECOVER:
 			_state_timer = recovery_duration
 			_attack_cd = attack_cooldown
@@ -214,6 +268,7 @@ func _enter(new_state: State) -> void:
 			_state_timer = stagger_duration
 			telegraph_mesh.visible = false
 			attack_hitbox.deactivate()
+			_telegraph_anchored = false
 		State.DEAD:
 			_state_timer = 0.0
 
@@ -225,14 +280,13 @@ func _on_damaged(info: DamageInfo) -> void:
 		return
 	EventBus.show_damage_number.emit(info.amount, global_position, info.is_crit)
 	_flash_white()
-	# Interrupt attacks if hit during windup or active (bosses get super armor in phase 2)
-	var interruptible := true
-	if is_boss and _phase >= 2:
-		interruptible = false
+	# Interrupt attacks unless we're enraged (bosses AND non-boss berserkers gain super armor in phase 2)
+	var has_phase: bool = is_boss or has_enrage_phase
+	var interruptible: bool = not (has_phase and _phase >= 2)
 	if interruptible and state in [State.TELEGRAPH, State.ACTIVE]:
 		_enter(State.STAGGER)
-	# Boss phase transition
-	if is_boss and _phase == 1 and health.health_percent() <= phase_2_hp_threshold:
+	# Phase transition (boss enrage OR berserker enrage)
+	if has_phase and _phase == 1 and health.health_percent() <= phase_2_hp_threshold:
 		_enter_phase_2()
 
 
@@ -330,6 +384,43 @@ func _rotate_toward(direction: Vector3, delta: float) -> void:
 	# Godot's default forward is local -Z, so yaw to face `direction` is atan2(-x, -z).
 	var target_yaw := atan2(-direction.x, -direction.z)
 	rotation.y = lerp_angle(rotation.y, target_yaw, rotation_speed * delta)
+
+
+## Spawn an enemy projectile aimed at the player. Re-teams the projectile's
+## HitBox so it damages the player (not other enemies).
+func _fire_projectile_attack() -> void:
+	if enemy_projectile_scene == null or _player == null:
+		return
+	var proj := enemy_projectile_scene.instantiate() as ProjectileEffect
+	get_tree().current_scene.add_child(proj)
+	proj.color = projectile_color
+	proj.speed = projectile_speed
+	proj.radius = 0.32
+	# Re-team the hitbox: enemy attack hits player layer
+	proj.hitbox.team = 2
+	proj.hitbox.collision_layer = 16  # EnemyHitbox
+	proj.hitbox.collision_mask = 2    # Player
+	var src := global_position
+	var dir := (_player.global_position - src)
+	dir.y = 0.0
+	if dir.length() < 0.01:
+		dir = -global_transform.basis.z
+	proj.setup(attack_damage, false, dir.normalized(), src)
+
+
+## Drop an AoE at the previously-locked telegraph position.
+func _drop_aoe_attack() -> void:
+	if enemy_aoe_scene == null:
+		return
+	var aoe := enemy_aoe_scene.instantiate() as AoEEffect
+	get_tree().current_scene.add_child(aoe)
+	# Re-team: enemy attack hits player
+	aoe.hitbox.team = 2
+	aoe.hitbox.collision_layer = 16
+	aoe.hitbox.collision_mask = 2
+	# Position at the telegraph anchor; height handled by the effect itself
+	aoe.global_position = _telegraph_world_anchor
+	aoe.setup(attack_damage, false, aoe_radius, aoe_color)
 
 
 func _flash_white() -> void:
