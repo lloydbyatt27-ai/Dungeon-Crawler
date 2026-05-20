@@ -222,7 +222,9 @@ func _serialize_player(player: PlayerController) -> Dictionary:
 			"unspent_attribute_points": s.unspent_attribute_points,
 			"unspent_skill_points": s.unspent_skill_points,
 			"best_endless_floor": s.best_endless_floor,
+			"completed_quest_ids": s.completed_quest_ids,
 		},
+		"active_quests": QuestSystem.serialize(),
 		"runtime": {
 			"current_hp": player.health.current_health if player.health else 0.0,
 			"current_mana": player.current_mana,
@@ -264,6 +266,18 @@ func _deserialize_into_player(player: PlayerController, data: Dictionary) -> voi
 	s.unspent_attribute_points = int(sd.get("unspent_attribute_points", 0))
 	s.unspent_skill_points = int(sd.get("unspent_skill_points", 0))
 	s.best_endless_floor = int(sd.get("best_endless_floor", 0))
+	# Quest completion record
+	var cq_raw = sd.get("completed_quest_ids", [])
+	if cq_raw is Array:
+		s.completed_quest_ids.clear()
+		for id in cq_raw:
+			s.completed_quest_ids.append(String(id))
+	# Restore active quests
+	var aq = data.get("active_quests", [])
+	if aq is Array:
+		QuestSystem.deserialize(aq)
+	else:
+		QuestSystem.clear_all()
 
 	# Restore inventory (must happen before equip so refresh_stats is correct)
 	var inv: Inventory = player.get_node_or_null("Inventory") as Inventory

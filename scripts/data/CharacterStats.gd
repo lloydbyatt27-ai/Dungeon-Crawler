@@ -29,6 +29,9 @@ extends Resource
 # Endless mode record
 @export var best_endless_floor: int = 0
 
+# Quests already completed by this character (prevents repeats)
+@export var completed_quest_ids: Array[String] = []
+
 # Equipment bonuses — set by Inventory whenever items are equipped/unequipped.
 # Not exported; recomputed at runtime from the current loadout.
 var bonus_strength: int = 0

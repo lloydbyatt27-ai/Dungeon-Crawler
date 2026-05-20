@@ -1,0 +1,79 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/QuestLogUI.gd" id="1_questlog"]
+
+[node name="QuestLogUI" type="CanvasLayer"]
+layer = 5
+script = ExtResource("1_questlog")
+
+[node name="Root" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Dim" type="ColorRect" parent="Root"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.55)
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Root"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -440.0
+offset_top = -320.0
+offset_right = 440.0
+offset_bottom = 320.0
+
+[node name="Margin" type="MarginContainer" parent="Root/Panel"]
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="VBox" type="VBoxContainer" parent="Root/Panel/Margin"]
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Root/Panel/Margin/VBox"]
+text = "Quest Log"
+theme_override_font_sizes/font_size = 26
+theme_override_colors/font_color = Color(0.95, 0.85, 0.45, 1)
+
+[node name="Subtitle" type="Label" parent="Root/Panel/Margin/VBox"]
+text = "Toggle with J. Hold up to 3 quests at once."
+theme_override_font_sizes/font_size = 12
+modulate = Color(0.7, 0.7, 0.75, 1)
+
+[node name="Columns" type="HBoxContainer" parent="Root/Panel/Margin/VBox"]
+theme_override_constants/separation = 18
+
+[node name="AvailableCol" type="VBoxContainer" parent="Root/Panel/Margin/VBox/Columns"]
+size_flags_horizontal = 3
+
+[node name="Header" type="Label" parent="Root/Panel/Margin/VBox/Columns/AvailableCol"]
+text = "Available"
+theme_override_font_sizes/font_size = 16
+modulate = Color(0.85, 0.85, 0.45, 1)
+
+[node name="List" type="VBoxContainer" parent="Root/Panel/Margin/VBox/Columns/AvailableCol"]
+theme_override_constants/separation = 8
+
+[node name="ActiveCol" type="VBoxContainer" parent="Root/Panel/Margin/VBox/Columns"]
+size_flags_horizontal = 3
+
+[node name="Header" type="Label" parent="Root/Panel/Margin/VBox/Columns/ActiveCol"]
+text = "Active"
+theme_override_font_sizes/font_size = 16
+modulate = Color(0.55, 0.85, 0.95, 1)
+
+[node name="List" type="VBoxContainer" parent="Root/Panel/Margin/VBox/Columns/ActiveCol"]
+theme_override_constants/separation = 8
+
+[node name="CloseButton" type="Button" parent="Root/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 36)
+text = "Close (Esc / J)"
