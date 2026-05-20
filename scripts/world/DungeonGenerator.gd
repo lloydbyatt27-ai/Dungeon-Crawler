@@ -306,23 +306,27 @@ func _populate_room(room: Dictionary) -> void:
 			0.0,
 			_rng.randf_range(-size.y * 0.35, size.y * 0.35)
 		)
+		_apply_difficulty(enemy)
 	# Boss
 	if spec.get("boss", false) and goblin_chief_scene:
 		var boss := goblin_chief_scene.instantiate()
 		add_child(boss)
 		boss.global_position = center + Vector3(0, 0, -size.y * 0.25)
+		_apply_difficulty(boss)
 	# Mini-boss (side branch) — beefier Orc Brute
 	if spec.get("mini_boss", false) and orc_brute_scene:
 		var brute := orc_brute_scene.instantiate()
 		add_child(brute)
 		brute.global_position = center
 		# Make him bigger / scarier than a regular brute
-		if "max_health" in brute.get_node_or_null("Health"):
-			brute.get_node("Health").max_health = 220.0
+		var brute_health = brute.get_node_or_null("Health")
+		if brute_health:
+			brute_health.max_health = 220.0
 		if "attack_damage" in brute:
 			brute.attack_damage = 26.0
 		if "xp_value" in brute:
 			brute.xp_value = 120
+		_apply_difficulty(brute)
 	# Chest
 	if spec.get("chest", false) and chest_scene:
 		var chest := chest_scene.instantiate()
@@ -337,6 +341,29 @@ func _populate_room(room: Dictionary) -> void:
 		var shrine := shrine_scene.instantiate()
 		add_child(shrine)
 		shrine.global_position = center
+
+
+## Apply the current run's difficulty multipliers to an enemy.
+## Called after add_child() so the enemy's _ready has set defaults.
+func _apply_difficulty(enemy: Node) -> void:
+	var data: Dictionary = DifficultyDatabase.get_data(SaveSystem.current_run_difficulty)
+	var hp_node := enemy.get_node_or_null("Health") as Health
+	if hp_node:
+		hp_node.max_health *= float(data.get("hp_mult", 1.0))
+		hp_node.current_health = hp_node.max_health
+		hp_node.health_changed.emit(hp_node.current_health, hp_node.max_health)
+	if "attack_damage" in enemy:
+		enemy.attack_damage *= float(data.get("damage_mult", 1.0))
+	if "xp_value" in enemy:
+		enemy.xp_value = int(float(enemy.xp_value) * float(data.get("xp_mult", 1.0)))
+	if "gold_min" in enemy and "gold_max" in enemy:
+		var gm: float = float(data.get("gold_mult", 1.0))
+		enemy.gold_min = int(float(enemy.gold_min) * gm)
+		enemy.gold_max = int(float(enemy.gold_max) * gm)
+	if "essence_value" in enemy:
+		enemy.essence_value *= float(data.get("essence_mult", 1.0))
+	if "item_drop_chance" in enemy:
+		enemy.item_drop_chance = min(1.0, float(enemy.item_drop_chance) + float(data.get("item_drop_bonus", 0.0)))
 
 
 func _pick_enemy_scene() -> PackedScene:

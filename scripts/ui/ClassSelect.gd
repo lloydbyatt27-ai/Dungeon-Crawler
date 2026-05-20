@@ -9,6 +9,7 @@ extends Control
 @onready var description_label: Label = $Center/VBox/DetailPanel/Margin/VBox/Description
 @onready var stats_label: RichTextLabel = $Center/VBox/DetailPanel/Margin/VBox/StatsLabel
 @onready var skills_label: RichTextLabel = $Center/VBox/DetailPanel/Margin/VBox/SkillsLabel
+@onready var difficulty_row: HBoxContainer = $Center/VBox/DifficultyRow
 @onready var begin_button: Button = $Center/VBox/BeginButton
 @onready var back_button: Button = $BackButton
 
@@ -16,14 +17,51 @@ const DUNGEON_PATH: String = "res://scenes/world/ProceduralDungeon.tscn"
 const MAIN_MENU_PATH: String = "res://scenes/ui/MainMenu.tscn"
 
 var _selected_class: String = "Guardian"
+var _selected_difficulty: String = "Normal"
 var _cards: Array[Button] = []
+var _difficulty_buttons: Dictionary = {}
 
 
 func _ready() -> void:
 	_build_cards()
+	_build_difficulty_row()
 	begin_button.pressed.connect(_on_begin_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 	_select(_selected_class)
+	_select_difficulty(_selected_difficulty)
+
+
+func _build_difficulty_row() -> void:
+	for c in difficulty_row.get_children():
+		c.queue_free()
+	_difficulty_buttons.clear()
+	for tier in DifficultyDatabase.TIER_ORDER:
+		var data: Dictionary = DifficultyDatabase.get_data(tier)
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(140, 46)
+		var unlocked := DifficultyDatabase.is_tier_unlocked(tier, SaveSystem.unlocked_difficulties)
+		if unlocked:
+			btn.text = tier
+			btn.add_theme_color_override("font_color", data.get("color", Color.WHITE))
+		else:
+			btn.text = "%s 🔒" % tier
+			btn.disabled = true
+			btn.tooltip_text = "Beat the boss on %s to unlock." % DifficultyDatabase.TIER_ORDER[DifficultyDatabase.TIER_ORDER.find(tier) - 1]
+		btn.pressed.connect(_select_difficulty.bind(tier))
+		difficulty_row.add_child(btn)
+		_difficulty_buttons[tier] = btn
+
+
+func _select_difficulty(tier: String) -> void:
+	if not DifficultyDatabase.is_tier_unlocked(tier, SaveSystem.unlocked_difficulties):
+		return
+	_selected_difficulty = tier
+	for t in _difficulty_buttons:
+		var btn: Button = _difficulty_buttons[t]
+		if t == tier:
+			btn.modulate = Color(1.5, 1.5, 1.5)
+		else:
+			btn.modulate = Color(0.7, 0.7, 0.7)
 
 
 func _build_cards() -> void:
@@ -108,8 +146,9 @@ func _select(class_id: String) -> void:
 
 
 func _on_begin_pressed() -> void:
-	# Stash the class on the SaveSystem so the next Player applies it
+	# Stash the class + difficulty on the SaveSystem
 	SaveSystem.pending_class = _selected_class
+	SaveSystem.current_run_difficulty = _selected_difficulty
 	SaveSystem.delete_save()
 	SaveSystem.pending_load_data = {}
 	GameState.run_stats = {

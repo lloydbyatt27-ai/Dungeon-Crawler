@@ -43,6 +43,16 @@ func _show() -> void:
 	# Bump dungeons_completed
 	GameState.run_stats.dungeons_completed += 1
 
+	# Unlock the next difficulty tier (if any)
+	var next_tier := DifficultyDatabase.unlock_next_tier(SaveSystem.current_run_difficulty)
+	if next_tier != "" and SaveSystem.unlock_difficulty(next_tier):
+		var color: Color = DifficultyDatabase.get_data(next_tier).get("color", Color.WHITE)
+		EventBus.show_floating_text.emit(
+			"%s MODE UNLOCKED!" % next_tier.to_upper(),
+			players[0].global_position + Vector3(0, 3.5, 0) if not players.is_empty() else Vector3.ZERO,
+			color
+		)
+
 	# Fade-in
 	root.modulate = Color(1, 1, 1, 0)
 	var tween := create_tween()

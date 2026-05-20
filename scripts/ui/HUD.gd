@@ -13,6 +13,7 @@ extends CanvasLayer
 @onready var combo_label: Label = $Root/ComboLabel
 @onready var state_label: Label = $Root/StateLabel
 @onready var gold_label: Label = $Root/GoldLabel
+@onready var difficulty_badge: Label = $Root/DifficultyBadge
 @onready var form_indicator: Label = $Root/FormIndicator
 @onready var death_overlay: ColorRect = $Root/DeathOverlay
 @onready var skill_bar: HBoxContainer = $Root/SkillBar
@@ -30,11 +31,19 @@ func _ready() -> void:
 	death_overlay.visible = false
 	death_overlay.modulate = Color(1, 1, 1, 0)
 	form_indicator.modulate = Color(1, 1, 1, 0)
+	_apply_difficulty_badge()
 	await get_tree().process_frame
 	_bind_to_player()
 	_build_skill_slots()
 	EventBus.player_gold_changed.connect(_on_gold_changed)
 	EventBus.player_shapeshifted.connect(_on_shapeshifted)
+
+
+func _apply_difficulty_badge() -> void:
+	var tier: String = SaveSystem.current_run_difficulty
+	var data: Dictionary = DifficultyDatabase.get_data(tier)
+	difficulty_badge.text = tier
+	difficulty_badge.add_theme_color_override("font_color", data.get("color", Color.WHITE))
 
 
 func _bind_to_player() -> void:

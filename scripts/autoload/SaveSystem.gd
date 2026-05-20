@@ -14,6 +14,7 @@ extends Node
 ## }
 
 const SAVE_PATH: String = "user://savegame.json"
+const META_PATH: String = "user://meta.json"
 const VERSION: int = 1
 
 # Cached deserialized save (set by load_save), applied to the next player spawn.
@@ -23,8 +24,54 @@ var pending_load_data: Dictionary = {}
 # Read by PlayerController._ready when no save data is being applied.
 var pending_class: String = ""
 
+# Difficulty chosen on the ClassSelect screen for the upcoming dungeon.
+# Read by DungeonGenerator on _ready.
+var pending_difficulty: String = "Normal"
+
+# Persistent meta-state across all characters
+var unlocked_difficulties: Array = ["Normal"]
+var current_run_difficulty: String = "Normal"  # active during a run
+
 # Run-level transient state used by the area-complete screen
 var run_summary: Dictionary = {}
+
+
+func _ready() -> void:
+	_load_meta()
+
+
+func _load_meta() -> void:
+	if not FileAccess.file_exists(META_PATH):
+		return
+	var f := FileAccess.open(META_PATH, FileAccess.READ)
+	if f == null:
+		return
+	var parsed = JSON.parse_string(f.get_as_text())
+	f.close()
+	if parsed is Dictionary:
+		var arr = parsed.get("unlocked_difficulties", ["Normal"])
+		if arr is Array:
+			unlocked_difficulties = arr
+		if not "Normal" in unlocked_difficulties:
+			unlocked_difficulties.append("Normal")
+
+
+func _save_meta() -> void:
+	var data := {"unlocked_difficulties": unlocked_difficulties}
+	var f := FileAccess.open(META_PATH, FileAccess.WRITE)
+	if f == null:
+		push_error("Could not open meta file for writing: " + META_PATH)
+		return
+	f.store_string(JSON.stringify(data, "\t"))
+	f.close()
+
+
+func unlock_difficulty(tier: String) -> bool:
+	if tier in unlocked_difficulties:
+		return false
+	unlocked_difficulties.append(tier)
+	_save_meta()
+	return true
 
 
 func has_save() -> bool:
