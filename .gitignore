@@ -1,0 +1,52 @@
+# Godot 4+ specific ignores
+.godot/
+.import/
+
+# Imported translations (automatic from CSVs)
+export.cfg
+export_presets.cfg
+
+# Mono / C# (in case we add C# later)
+.mono/
+data_*/
+mono_crash.*.json
+
+# Windows + OS noise
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Mac noise
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build output
+builds/
+exports/
+*.exe
+*.app/
+*.dmg
+*.pck
+*.zip
+
+# Logs
+*.log
+logs/
+
+# Local dev notes (don't share)
+NOTES.local.md
+SCRATCH.md
+
+# Claude Code local settings
+.claude/

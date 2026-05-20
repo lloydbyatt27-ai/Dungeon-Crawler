@@ -1,0 +1,105 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://scripts/player/PlayerController.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/combat/Health.gd" id="2_health"]
+[ext_resource type="Script" path="res://scripts/combat/HurtBox.gd" id="3_hurtbox"]
+[ext_resource type="Script" path="res://scripts/combat/HitBox.gd" id="4_hitbox"]
+[ext_resource type="Script" path="res://scripts/data/CharacterStats.gd" id="5_stats"]
+[ext_resource type="Script" path="res://scripts/player/SkillSystem.gd" id="6_skills"]
+[ext_resource type="PackedScene" path="res://scenes/skills/EarthquakeEffect.tscn" id="7_earthquake"]
+[ext_resource type="PackedScene" path="res://scenes/skills/FrostbiteEffect.tscn" id="8_frostbite"]
+[ext_resource type="PackedScene" path="res://scenes/skills/WarcryAura.tscn" id="9_warcry"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_body"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
+albedo_color = Color(0.85, 0.55, 0.3, 1)
+metallic_specular = 0.3
+roughness = 0.55
+
+[sub_resource type="BoxMesh" id="BoxMesh_facing"]
+size = Vector3(0.15, 0.15, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_facing"]
+albedo_color = Color(1, 0.95, 0.6, 1)
+emission_enabled = true
+emission = Color(1, 0.85, 0.4, 1)
+emission_energy_multiplier = 0.6
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_melee"]
+size = Vector3(1.8, 1.2, 1.6)
+
+[sub_resource type="Resource" id="CharacterStats_default"]
+script = ExtResource("5_stats")
+class_type = "Guardian"
+character_name = "Aric"
+level = 1
+xp = 0
+strength = 12
+agility = 6
+intelligence = 4
+stamina = 10
+gold = 0
+essence = 0.0
+unspent_attribute_points = 0
+unspent_skill_points = 0
+
+[node name="Player" type="CharacterBody3D" groups=["player"]]
+collision_layer = 2
+collision_mask = 5
+script = ExtResource("1_player")
+stats = SubResource("CharacterStats_default")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_player")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("CapsuleMesh_body")
+surface_material_override/0 = SubResource("StandardMaterial3D_body")
+
+[node name="FacingIndicator" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, -0.4)
+mesh = SubResource("BoxMesh_facing")
+surface_material_override/0 = SubResource("StandardMaterial3D_facing")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("2_health")
+max_health = 158.0
+
+[node name="HurtBox" type="Area3D" parent="."]
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("3_hurtbox")
+health_path = NodePath("../Health")
+team = 1
+
+[node name="HurtBoxShape" type="CollisionShape3D" parent="HurtBox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_player")
+
+[node name="MeleeHitBox" type="Area3D" parent="."]
+collision_layer = 8
+collision_mask = 4
+monitoring = false
+monitorable = false
+script = ExtResource("4_hitbox")
+team = 1
+damage = 10.0
+
+[node name="MeleeHitShape" type="CollisionShape3D" parent="MeleeHitBox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, -1.2)
+shape = SubResource("BoxShape3D_melee")
+
+[node name="SkillSystem" type="Node" parent="."]
+script = ExtResource("6_skills")
+earthquake_scene = ExtResource("7_earthquake")
+frostbite_scene = ExtResource("8_frostbite")
+warcry_aura_scene = ExtResource("9_warcry")
