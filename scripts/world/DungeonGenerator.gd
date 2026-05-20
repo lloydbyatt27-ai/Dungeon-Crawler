@@ -344,21 +344,34 @@ func _populate_room(room: Dictionary) -> void:
 		shrine.global_position = center
 
 
-## Apply the current run's difficulty multipliers to an enemy.
+## Apply the current run's difficulty + endless-floor multipliers to an enemy.
 ## Called after add_child() so the enemy's _ready has set defaults.
 func _apply_difficulty(enemy: Node) -> void:
 	var data: Dictionary = DifficultyDatabase.get_data(SaveSystem.current_run_difficulty)
+	# Endless-mode floor scaling: HP x 1.15^(floor-1), damage x 1.08^(floor-1),
+	# xp x 1.10^(floor-1), gold x 1.05^(floor-1)
+	var endless_hp_mult: float = 1.0
+	var endless_dmg_mult: float = 1.0
+	var endless_xp_mult: float = 1.0
+	var endless_gold_mult: float = 1.0
+	if SaveSystem.endless_mode and SaveSystem.current_endless_floor > 1:
+		var f: int = SaveSystem.current_endless_floor - 1
+		endless_hp_mult = pow(1.15, f)
+		endless_dmg_mult = pow(1.08, f)
+		endless_xp_mult = pow(1.10, f)
+		endless_gold_mult = pow(1.05, f)
+
 	var hp_node := enemy.get_node_or_null("Health") as Health
 	if hp_node:
-		hp_node.max_health *= float(data.get("hp_mult", 1.0))
+		hp_node.max_health *= float(data.get("hp_mult", 1.0)) * endless_hp_mult
 		hp_node.current_health = hp_node.max_health
 		hp_node.health_changed.emit(hp_node.current_health, hp_node.max_health)
 	if "attack_damage" in enemy:
-		enemy.attack_damage *= float(data.get("damage_mult", 1.0))
+		enemy.attack_damage *= float(data.get("damage_mult", 1.0)) * endless_dmg_mult
 	if "xp_value" in enemy:
-		enemy.xp_value = int(float(enemy.xp_value) * float(data.get("xp_mult", 1.0)))
+		enemy.xp_value = int(float(enemy.xp_value) * float(data.get("xp_mult", 1.0)) * endless_xp_mult)
 	if "gold_min" in enemy and "gold_max" in enemy:
-		var gm: float = float(data.get("gold_mult", 1.0))
+		var gm: float = float(data.get("gold_mult", 1.0)) * endless_gold_mult
 		enemy.gold_min = int(float(enemy.gold_min) * gm)
 		enemy.gold_max = int(float(enemy.gold_max) * gm)
 	if "essence_value" in enemy:

@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
 [ext_resource type="Script" path="res://scripts/world/IsometricCamera.gd" id="2_camera"]
@@ -12,6 +12,7 @@
 [ext_resource type="PackedScene" path="res://scenes/world/Forge.tscn" id="10_forge"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ForgeUI.tscn" id="11_forgeui"]
 [ext_resource type="PackedScene" path="res://scenes/ui/PauseMenu.tscn" id="12_pause"]
+[ext_resource type="PackedScene" path="res://scenes/world/EndlessPortal.tscn" id="13_endless"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
 size = Vector2(28, 28)
@@ -121,7 +122,10 @@ item_filter = ["WEAPON"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
 
 [node name="Portal" parent="." instance=ExtResource("9_portal")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, -8)
+
+[node name="EndlessPortal" parent="." instance=ExtResource("13_endless")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, -8)
 
 [node name="Lighting" type="Node3D" parent="."]
 

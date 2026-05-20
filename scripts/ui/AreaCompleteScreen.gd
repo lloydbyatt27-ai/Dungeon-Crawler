@@ -1,7 +1,7 @@
 extends CanvasLayer
-## Triggers on boss_defeated. After a 2s delay, shows a summary modal with
-## the run's deltas (kills, gold, items, time), saves the player, and offers
-## a "Return to Hub" button that goes back to the MainMenu.
+## Triggers on boss_defeated. Shows a summary modal with run deltas, saves
+## the player. In normal mode the button returns to HubTown. In endless mode
+## the same button descends to the next floor (re-generates the dungeon).
 
 @onready var root: Control = $Root
 @onready var title_label: Label = $Root/Panel/Margin/VBox/Title
@@ -12,6 +12,7 @@ extends CanvasLayer
 @onready var continue_button: Button = $Root/Panel/Margin/VBox/ContinueButton
 
 const HUB_PATH: String = "res://scenes/world/HubTown.tscn"
+const DUNGEON_PATH: String = "res://scenes/world/ProceduralDungeon.tscn"
 
 
 func _ready() -> void:
@@ -35,23 +36,35 @@ func _show() -> void:
 	var seconds: float = GameState.run_delta("play_time_seconds")
 	time_label.text = "%d:%02d" % [int(seconds / 60.0), int(seconds) % 60]
 
-	# Save the player
+	# Endless vs normal flow
 	var players := get_tree().get_nodes_in_group("player")
+	if SaveSystem.endless_mode:
+		title_label.text = "FLOOR %d CLEARED" % SaveSystem.current_endless_floor
+		continue_button.text = "Descend to Floor %d" % (SaveSystem.current_endless_floor + 1)
+		# Update the player's best record
+		if not players.is_empty():
+			var stats: CharacterStats = players[0].stats
+			if stats and SaveSystem.current_endless_floor > stats.best_endless_floor:
+				stats.best_endless_floor = SaveSystem.current_endless_floor
+	else:
+		title_label.text = "AREA COMPLETE"
+		continue_button.text = "Return to Hub"
+		# Unlock the next difficulty tier (only outside endless)
+		var next_tier := DifficultyDatabase.unlock_next_tier(SaveSystem.current_run_difficulty)
+		if next_tier != "" and SaveSystem.unlock_difficulty(next_tier):
+			var color: Color = DifficultyDatabase.get_data(next_tier).get("color", Color.WHITE)
+			EventBus.show_floating_text.emit(
+				"%s MODE UNLOCKED!" % next_tier.to_upper(),
+				players[0].global_position + Vector3(0, 3.5, 0) if not players.is_empty() else Vector3.ZERO,
+				color
+			)
+
+	# Save the player
 	if not players.is_empty():
 		SaveSystem.save_player(players[0])
 
 	# Bump dungeons_completed
 	GameState.run_stats.dungeons_completed += 1
-
-	# Unlock the next difficulty tier (if any)
-	var next_tier := DifficultyDatabase.unlock_next_tier(SaveSystem.current_run_difficulty)
-	if next_tier != "" and SaveSystem.unlock_difficulty(next_tier):
-		var color: Color = DifficultyDatabase.get_data(next_tier).get("color", Color.WHITE)
-		EventBus.show_floating_text.emit(
-			"%s MODE UNLOCKED!" % next_tier.to_upper(),
-			players[0].global_position + Vector3(0, 3.5, 0) if not players.is_empty() else Vector3.ZERO,
-			color
-		)
 
 	# Fade-in
 	root.modulate = Color(1, 1, 1, 0)
@@ -60,7 +73,12 @@ func _show() -> void:
 
 
 func _on_continue_pressed() -> void:
-	# After clearing, also pre-load the save so the hub picks up the new state
+	# After clearing, also pre-load the save so the next scene picks up the new state
 	if SaveSystem.has_save():
 		SaveSystem.load_save()
-	get_tree().change_scene_to_file(HUB_PATH)
+	if SaveSystem.endless_mode:
+		# Descend: increment floor counter and reload the dungeon for a fresh layout
+		SaveSystem.current_endless_floor += 1
+		get_tree().change_scene_to_file(DUNGEON_PATH)
+	else:
+		get_tree().change_scene_to_file(HUB_PATH)

@@ -15,6 +15,7 @@ extends CanvasLayer
 @onready var gold_label: Label = $Root/GoldLabel
 @onready var difficulty_badge: Label = $Root/DifficultyBadge
 @onready var shards_label: Label = $Root/ShardsLabel
+@onready var floor_label: Label = $Root/FloorLabel
 @onready var form_indicator: Label = $Root/FormIndicator
 @onready var death_overlay: ColorRect = $Root/DeathOverlay
 @onready var skill_bar: HBoxContainer = $Root/SkillBar
@@ -49,6 +50,11 @@ func _apply_difficulty_badge() -> void:
 	var data: Dictionary = DifficultyDatabase.get_data(tier)
 	difficulty_badge.text = tier
 	difficulty_badge.add_theme_color_override("font_color", data.get("color", Color.WHITE))
+	# Floor indicator (visible only in endless mode)
+	if SaveSystem.endless_mode:
+		floor_label.text = "Floor %d" % SaveSystem.current_endless_floor
+	else:
+		floor_label.text = ""
 
 
 func _bind_to_player() -> void:

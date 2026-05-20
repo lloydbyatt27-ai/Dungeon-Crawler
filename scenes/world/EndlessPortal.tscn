@@ -1,0 +1,88 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/EndlessPortal.gd" id="1_endless"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_base"]
+top_radius = 1.6
+bottom_radius = 1.9
+height = 0.4
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_base"]
+albedo_color = Color(0.32, 0.18, 0.36, 1)
+metallic = 0.55
+roughness = 0.4
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_beam"]
+top_radius = 1.1
+bottom_radius = 1.4
+height = 4.5
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_beam"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.85, 0.45, 1, 0.5)
+emission_enabled = true
+emission = Color(0.9, 0.5, 1, 1)
+emission_energy_multiplier = 3.0
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_body"]
+radius = 1.9
+height = 0.4
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_interact"]
+radius = 2.8
+
+[node name="EndlessPortal" type="StaticBody3D" groups=["interactable"]]
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1_endless")
+
+[node name="Base" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+mesh = SubResource("CylinderMesh_base")
+surface_material_override/0 = SubResource("StandardMaterial3D_base")
+
+[node name="Beam" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+mesh = SubResource("CylinderMesh_beam")
+surface_material_override/0 = SubResource("StandardMaterial3D_beam")
+
+[node name="PortalLight" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+light_color = Color(0.85, 0.45, 1, 1)
+light_energy = 2.2
+omni_range = 8.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+shape = SubResource("CylinderShape3D_body")
+
+[node name="InteractArea" type="Area3D" parent="."]
+collision_layer = 32
+collision_mask = 2
+
+[node name="InteractShape" type="CollisionShape3D" parent="InteractArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("SphereShape3D_interact")
+
+[node name="PromptLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.5, 0)
+billboard = 1
+no_depth_test = true
+fixed_size = true
+pixel_size = 0.009
+font_size = 36
+outline_size = 8
+modulate = Color(0.95, 0.6, 1, 1)
+text = "[ F ] Endless Descent"
+
+[node name="SubtitleLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.0, 0)
+billboard = 1
+no_depth_test = true
+fixed_size = true
+pixel_size = 0.006
+font_size = 24
+outline_size = 6
+modulate = Color(0.8, 0.6, 0.95, 1)
+text = ""

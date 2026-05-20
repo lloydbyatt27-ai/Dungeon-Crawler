@@ -26,6 +26,9 @@ extends Resource
 @export var unspent_attribute_points: int = 0
 @export var unspent_skill_points: int = 0
 
+# Endless mode record
+@export var best_endless_floor: int = 0
+
 # Equipment bonuses — set by Inventory whenever items are equipped/unequipped.
 # Not exported; recomputed at runtime from the current loadout.
 var bonus_strength: int = 0

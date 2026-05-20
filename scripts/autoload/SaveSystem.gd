@@ -32,6 +32,10 @@ var pending_difficulty: String = "Normal"
 var unlocked_difficulties: Array = ["Normal"]
 var current_run_difficulty: String = "Normal"  # active during a run
 
+# Endless mode tracking (per-run, not persisted)
+var endless_mode: bool = false
+var current_endless_floor: int = 0
+
 # Run-level transient state used by the area-complete screen
 var run_summary: Dictionary = {}
 
@@ -163,6 +167,7 @@ func _serialize_player(player: PlayerController) -> Dictionary:
 			"essence": s.essence,
 			"unspent_attribute_points": s.unspent_attribute_points,
 			"unspent_skill_points": s.unspent_skill_points,
+			"best_endless_floor": s.best_endless_floor,
 		},
 		"runtime": {
 			"current_hp": player.health.current_health if player.health else 0.0,
@@ -204,6 +209,7 @@ func _deserialize_into_player(player: PlayerController, data: Dictionary) -> voi
 	s.essence = float(sd.get("essence", 0.0))
 	s.unspent_attribute_points = int(sd.get("unspent_attribute_points", 0))
 	s.unspent_skill_points = int(sd.get("unspent_skill_points", 0))
+	s.best_endless_floor = int(sd.get("best_endless_floor", 0))
 
 	# Restore inventory (must happen before equip so refresh_stats is correct)
 	var inv: Inventory = player.get_node_or_null("Inventory") as Inventory
