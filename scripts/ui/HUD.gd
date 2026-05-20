@@ -14,6 +14,7 @@ extends CanvasLayer
 @onready var state_label: Label = $Root/StateLabel
 @onready var gold_label: Label = $Root/GoldLabel
 @onready var difficulty_badge: Label = $Root/DifficultyBadge
+@onready var shards_label: Label = $Root/ShardsLabel
 @onready var form_indicator: Label = $Root/FormIndicator
 @onready var death_overlay: ColorRect = $Root/DeathOverlay
 @onready var skill_bar: HBoxContainer = $Root/SkillBar
@@ -36,7 +37,11 @@ func _ready() -> void:
 	_bind_to_player()
 	_build_skill_slots()
 	EventBus.player_gold_changed.connect(_on_gold_changed)
+	EventBus.player_shards_changed.connect(_on_shards_changed)
 	EventBus.player_shapeshifted.connect(_on_shapeshifted)
+	# Initial sync with current stats
+	if _player and _player.stats:
+		shards_label.text = "%d shards" % _player.stats.soul_shards
 
 
 func _apply_difficulty_badge() -> void:
@@ -181,6 +186,10 @@ func _to_main_menu() -> void:
 
 func _on_gold_changed(new_total: int) -> void:
 	gold_label.text = "Gold: %d" % new_total
+
+
+func _on_shards_changed(new_total: int) -> void:
+	shards_label.text = "%d shards" % new_total
 
 
 func _on_shapeshifted(form_name: String, is_active: bool) -> void:

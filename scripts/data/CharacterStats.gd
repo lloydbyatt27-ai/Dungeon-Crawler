@@ -19,6 +19,7 @@ extends Resource
 
 # Currency
 @export var gold: int = 0
+@export var soul_shards: int = 0
 @export var essence: float = 0.0
 
 # Unspent points

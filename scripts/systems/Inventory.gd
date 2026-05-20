@@ -99,6 +99,44 @@ func spend_gold(amount: int) -> bool:
 	return true
 
 
+# --- Sell / Salvage --------------------------------------------------
+
+const SHARD_BY_RARITY: Dictionary = {
+	Item.Rarity.COMMON:    1,
+	Item.Rarity.UNCOMMON:  3,
+	Item.Rarity.RARE:      8,
+	Item.Rarity.EPIC:      20,
+	Item.Rarity.LEGENDARY: 50,
+}
+
+
+## Sell an inventory item to a vendor for gold (= item.sell_value).
+## Returns the gold gained, or 0 on failure.
+func sell_item(item: Item) -> int:
+	if not items.has(item):
+		return 0
+	var gold_gained: int = max(1, item.sell_value)
+	items.erase(item)
+	_player.stats.gold += gold_gained
+	items_changed.emit()
+	EventBus.player_gold_changed.emit(_player.stats.gold)
+	return gold_gained
+
+
+## Salvage an inventory item into Soul Shards (count depends on rarity).
+## Returns the shards gained, or 0 on failure.
+func salvage_item(item: Item) -> int:
+	if not items.has(item):
+		return 0
+	var shards: int = SHARD_BY_RARITY.get(item.rarity, 1)
+	items.erase(item)
+	if _player.stats:
+		_player.stats.soul_shards += shards
+		EventBus.player_shards_changed.emit(_player.stats.soul_shards)
+	items_changed.emit()
+	return shards
+
+
 # --- Stat application ----------------------------------------------
 
 func _refresh_stats() -> void:

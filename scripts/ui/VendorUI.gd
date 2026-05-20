@@ -1,13 +1,14 @@
 extends CanvasLayer
-## Vendor screen. Listens for any merchant in the "merchant" group to emit
-## opened(self), then displays that merchant's stock with buy buttons.
-## Press Esc to close.
+## Vendor screen. Two columns: merchant stock (buy) on the left, player
+## inventory (sell + salvage) on the right.
 
 @onready var root: Control = $Root
 @onready var dim: ColorRect = $Root/Dim
 @onready var title_label: Label = $Root/Panel/Margin/VBox/Title
 @onready var gold_label: Label = $Root/Panel/Margin/VBox/HeaderRow/GoldLabel
-@onready var stock_grid: VBoxContainer = $Root/Panel/Margin/VBox/StockGrid
+@onready var shards_label: Label = $Root/Panel/Margin/VBox/HeaderRow/ShardsLabel
+@onready var stock_grid: VBoxContainer = $Root/Panel/Margin/VBox/Columns/BuyColumn/StockGrid
+@onready var inv_grid: VBoxContainer = $Root/Panel/Margin/VBox/Columns/SellColumn/InvGrid
 @onready var close_button: Button = $Root/Panel/Margin/VBox/CloseButton
 @onready var tooltip: PanelContainer = $Root/Tooltip
 @onready var tooltip_label: RichTextLabel = $Root/Tooltip/Margin/Label
@@ -42,7 +43,6 @@ func _subscribe_merchants() -> void:
 func open(merchant: Node) -> void:
 	_merchant = merchant
 	root.visible = true
-	get_tree().paused = false  # don't pause; player can leave by walking away
 	title_label.text = merchant.merchant_name if "merchant_name" in merchant else "Trader"
 	_refresh()
 
@@ -62,56 +62,100 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(_delta: float) -> void:
 	if tooltip.visible:
 		_position_tooltip()
-	# Subscribe to any newly-spawned merchants (HubTown is static, but safe)
-	if root.visible and _player and _player.stats:
-		gold_label.text = "Gold: %d" % _player.stats.gold
 
 
 func _refresh() -> void:
-	for c in stock_grid.get_children():
-		c.queue_free()
 	if _merchant == null:
 		return
+	_update_header()
+	_rebuild_buy_column()
+	_rebuild_sell_column()
+
+
+func _update_header() -> void:
 	if _player and _player.stats:
-		gold_label.text = "Gold: %d" % _player.stats.gold
+		gold_label.text = "%d g" % _player.stats.gold
+		shards_label.text = "%d shards" % _player.stats.soul_shards
+
+
+func _rebuild_buy_column() -> void:
+	for c in stock_grid.get_children():
+		c.queue_free()
 	for item in _merchant.stock:
-		stock_grid.add_child(_make_stock_row(item))
+		stock_grid.add_child(_make_buy_row(item))
 
 
-func _make_stock_row(item: Item) -> Control:
+func _rebuild_sell_column() -> void:
+	for c in inv_grid.get_children():
+		c.queue_free()
+	if _inventory == null:
+		return
+	for item in _inventory.items:
+		inv_grid.add_child(_make_sell_row(item))
+
+
+func _make_buy_row(item: Item) -> Control:
 	var row := HBoxContainer.new()
-	row.custom_minimum_size = Vector2(0, 44)
-
+	row.custom_minimum_size = Vector2(0, 36)
 	var name_btn := Button.new()
-	name_btn.custom_minimum_size = Vector2(280, 40)
+	name_btn.custom_minimum_size = Vector2(190, 32)
 	name_btn.text = item.display_name
 	name_btn.add_theme_color_override("font_color", item.get_rarity_color())
+	name_btn.clip_text = true
 	name_btn.mouse_entered.connect(_show_tooltip.bind(item))
 	name_btn.mouse_exited.connect(_hide_tooltip)
 	name_btn.pressed.connect(_buy.bind(item))
 	row.add_child(name_btn)
-
 	var price_label := Label.new()
-	price_label.custom_minimum_size = Vector2(110, 40)
-	price_label.text = "%d g" % _price_for(item)
-	price_label.add_theme_font_size_override("font_size", 18)
+	price_label.custom_minimum_size = Vector2(70, 32)
+	price_label.text = "%dg" % _buy_price(item)
 	price_label.add_theme_color_override("font_color", Color(1, 0.85, 0.3))
 	price_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	row.add_child(price_label)
-
 	return row
 
 
-func _price_for(item: Item) -> int:
-	# Buy = ~4x the item's sell value
+func _make_sell_row(item: Item) -> Control:
+	var row := HBoxContainer.new()
+	row.custom_minimum_size = Vector2(0, 36)
+	var name_label := Label.new()
+	name_label.custom_minimum_size = Vector2(150, 32)
+	name_label.text = item.display_name
+	name_label.add_theme_color_override("font_color", item.get_rarity_color())
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_label.clip_text = true
+	name_label.mouse_filter = Control.MOUSE_FILTER_STOP
+	name_label.mouse_entered.connect(_show_tooltip.bind(item))
+	name_label.mouse_exited.connect(_hide_tooltip)
+	row.add_child(name_label)
+
+	var sell_btn := Button.new()
+	sell_btn.custom_minimum_size = Vector2(64, 32)
+	sell_btn.text = "%dg" % item.sell_value
+	sell_btn.tooltip_text = "Sell for gold"
+	sell_btn.add_theme_color_override("font_color", Color(1, 0.85, 0.3))
+	sell_btn.pressed.connect(_sell.bind(item))
+	row.add_child(sell_btn)
+
+	var salvage_btn := Button.new()
+	salvage_btn.custom_minimum_size = Vector2(58, 32)
+	salvage_btn.text = "%d◆" % Inventory.SHARD_BY_RARITY.get(item.rarity, 1)
+	salvage_btn.tooltip_text = "Salvage for soul shards"
+	salvage_btn.add_theme_color_override("font_color", Color(0.8, 0.55, 1))
+	salvage_btn.pressed.connect(_salvage.bind(item))
+	row.add_child(salvage_btn)
+	return row
+
+
+func _buy_price(item: Item) -> int:
 	return max(1, item.sell_value * 4)
 
 
 func _buy(item: Item) -> void:
 	if _player == null or _inventory == null:
 		return
-	var price := _price_for(item)
+	var price := _buy_price(item)
 	if _player.stats.gold < price:
 		EventBus.show_floating_text.emit("Not enough gold", _player.global_position + Vector3(0, 2, 0), Color(1, 0.4, 0.3))
 		return
@@ -119,6 +163,20 @@ func _buy(item: Item) -> void:
 		return
 	if _inventory.add_item(item):
 		_merchant.remove_item(item)
+		_refresh()
+
+
+func _sell(item: Item) -> void:
+	if _inventory == null:
+		return
+	if _inventory.sell_item(item) > 0:
+		_refresh()
+
+
+func _salvage(item: Item) -> void:
+	if _inventory == null:
+		return
+	if _inventory.salvage_item(item) > 0:
 		_refresh()
 
 

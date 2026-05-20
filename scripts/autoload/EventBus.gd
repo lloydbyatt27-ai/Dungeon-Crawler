@@ -19,6 +19,7 @@ signal attack_of_opportunity_window(target: Node, duration: float)
 signal player_leveled_up(new_level: int)
 signal player_xp_gained(amount: int)
 signal player_gold_changed(new_total: int)
+signal player_shards_changed(new_total: int)
 signal player_essence_changed(new_value: float)
 signal player_shapeshifted(form_id: String, is_active: bool)
 signal player_stats_changed

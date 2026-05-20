@@ -138,6 +138,7 @@ func _serialize_player(player: PlayerController) -> Dictionary:
 			"intelligence": s.intelligence,
 			"stamina": s.stamina,
 			"gold": s.gold,
+			"soul_shards": s.soul_shards,
 			"essence": s.essence,
 			"unspent_attribute_points": s.unspent_attribute_points,
 			"unspent_skill_points": s.unspent_skill_points,
@@ -174,6 +175,7 @@ func _deserialize_into_player(player: PlayerController, data: Dictionary) -> voi
 	s.intelligence = int(sd.get("intelligence", 4))
 	s.stamina = int(sd.get("stamina", 10))
 	s.gold = int(sd.get("gold", 0))
+	s.soul_shards = int(sd.get("soul_shards", 0))
 	s.essence = float(sd.get("essence", 0.0))
 	s.unspent_attribute_points = int(sd.get("unspent_attribute_points", 0))
 	s.unspent_skill_points = int(sd.get("unspent_skill_points", 0))
