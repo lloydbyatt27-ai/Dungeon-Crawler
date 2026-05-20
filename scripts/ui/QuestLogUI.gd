@@ -6,6 +6,7 @@ extends CanvasLayer
 @onready var root: Control = $Root
 @onready var available_box: VBoxContainer = $Root/Panel/Margin/VBox/Columns/AvailableCol/List
 @onready var active_box: VBoxContainer = $Root/Panel/Margin/VBox/Columns/ActiveCol/List
+@onready var daily_box: VBoxContainer = $Root/Panel/Margin/VBox/Columns/ActiveCol/DailyBox
 @onready var close_button: Button = $Root/Panel/Margin/VBox/CloseButton
 
 var _player: PlayerController
@@ -50,6 +51,7 @@ func close() -> void:
 
 func _refresh() -> void:
 	_rebuild_available()
+	_rebuild_daily()
 	_rebuild_active()
 
 
@@ -68,6 +70,63 @@ func _rebuild_available() -> void:
 	for id in ids:
 		var def: Dictionary = QuestDatabase.QUESTS[id]
 		available_box.add_child(_make_available_row(id, def))
+
+
+func _rebuild_daily() -> void:
+	for c in daily_box.get_children():
+		c.queue_free()
+	var q: Quest = QuestSystem.daily_quest
+	if q == null:
+		return
+	var title := Label.new()
+	title.text = "Daily Bounty"
+	title.add_theme_font_size_override("font_size", 14)
+	title.add_theme_color_override("font_color", Color(1, 0.7, 0.3))
+	daily_box.add_child(title)
+	# A bordered card with the daily details
+	var panel := PanelContainer.new()
+	panel.modulate = Color(1.05, 0.95, 0.85, 1.0)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_top", 6)
+	margin.add_theme_constant_override("margin_bottom", 6)
+	panel.add_child(margin)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 3)
+	margin.add_child(v)
+	var name_label := Label.new()
+	name_label.text = q.title
+	name_label.add_theme_font_size_override("font_size", 15)
+	name_label.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
+	v.add_child(name_label)
+	var desc_label := Label.new()
+	desc_label.text = q.description
+	desc_label.add_theme_font_size_override("font_size", 12)
+	desc_label.add_theme_color_override("font_color", Color(0.85, 0.85, 0.9))
+	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	v.add_child(desc_label)
+	if q.completed:
+		var done := Label.new()
+		done.text = "✓ Completed — reward claimed."
+		done.add_theme_font_size_override("font_size", 12)
+		done.add_theme_color_override("font_color", Color(0.55, 0.95, 0.45))
+		v.add_child(done)
+	else:
+		var bar := ProgressBar.new()
+		bar.custom_minimum_size = Vector2(0, 12)
+		bar.max_value = q.target
+		bar.value = q.progress
+		bar.show_percentage = false
+		v.add_child(bar)
+		var prog := Label.new()
+		prog.text = "%s   ·   %d gold, %d XP  (x3 bounty)" % [q.progress_text(), q.gold_reward, q.xp_reward]
+		prog.add_theme_font_size_override("font_size", 11)
+		prog.add_theme_color_override("font_color", Color(0.85, 0.85, 0.9))
+		v.add_child(prog)
+	daily_box.add_child(panel)
+	var sep := HSeparator.new()
+	daily_box.add_child(sep)
 
 
 func _rebuild_active() -> void:

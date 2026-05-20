@@ -9,14 +9,22 @@ signal quests_changed
 signal quest_completed(quest: Quest)
 
 const MAX_ACTIVE: int = 3
+const DAILY_REWARD_MULT: float = 3.0
+const DAILY_PATH: String = "user://daily.json"
 
 var active_quests: Array[Quest] = []
+
+# Daily quest — auto-rolled per real-world date, cross-character
+var daily_quest: Quest = null
+var daily_seed_date: String = ""
 
 
 func _ready() -> void:
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.item_picked_up.connect(_on_item_picked_up)
 	EventBus.boss_defeated.connect(_on_boss_defeated)
+	_load_daily()
+	_refresh_daily_if_new_day()
 
 
 # --- Public API ----------------------------------------------------
@@ -86,6 +94,10 @@ func _on_enemy_died(_enemy: Node, _pos: Vector3) -> void:
 		if q.objective_type == "kill":
 			q.progress += 1
 			_check_complete(q)
+	# Daily quest tracks too
+	if daily_quest and not daily_quest.completed and daily_quest.objective_type == "kill":
+		daily_quest.progress += 1
+		_check_complete_daily()
 	quests_changed.emit()
 
 
@@ -97,6 +109,10 @@ func _on_item_picked_up(item) -> void:
 		if q.objective_type == "find_rarity" and int(item.rarity) >= q.target_rarity:
 			q.progress += 1
 			_check_complete(q)
+	if daily_quest and not daily_quest.completed and daily_quest.objective_type == "find_rarity" \
+			and int(item.rarity) >= daily_quest.target_rarity:
+		daily_quest.progress += 1
+		_check_complete_daily()
 	quests_changed.emit()
 
 
@@ -106,6 +122,9 @@ func _on_boss_defeated(_boss: Node) -> void:
 		if q.objective_type == "boss":
 			q.progress += 1
 			_check_complete(q)
+	if daily_quest and not daily_quest.completed and daily_quest.objective_type == "boss":
+		daily_quest.progress += 1
+		_check_complete_daily()
 	# Floor-progress quests also update when bosses fall (since boss = floor cleared)
 	if SaveSystem.endless_mode:
 		for q in active_quests:
@@ -113,6 +132,9 @@ func _on_boss_defeated(_boss: Node) -> void:
 			if q.objective_type == "floor":
 				q.progress = max(q.progress, SaveSystem.current_endless_floor)
 				_check_complete(q)
+		if daily_quest and not daily_quest.completed and daily_quest.objective_type == "floor":
+			daily_quest.progress = max(daily_quest.progress, SaveSystem.current_endless_floor)
+			_check_complete_daily()
 	quests_changed.emit()
 
 
@@ -122,6 +144,97 @@ func _check_complete(q: Quest) -> void:
 	if q.progress >= q.target and not q.completed:
 		_grant(q)
 
+
+## --- Daily quest -------------------------------------------------
+
+func _refresh_daily_if_new_day() -> void:
+	var today: String = Time.get_date_string_from_system()
+	if daily_seed_date == today and daily_quest != null:
+		return
+	daily_seed_date = today
+	# Deterministic by date so all players on the same day see the same daily
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(today)
+	var ids: Array = QuestDatabase.all_ids()
+	if ids.is_empty():
+		daily_quest = null
+		_save_daily()
+		return
+	var template_id: String = ids[rng.randi() % ids.size()]
+	daily_quest = QuestDatabase.create(template_id)
+	if daily_quest:
+		daily_quest.gold_reward = int(daily_quest.gold_reward * DAILY_REWARD_MULT)
+		daily_quest.xp_reward = int(daily_quest.xp_reward * DAILY_REWARD_MULT)
+		# If it's a floor quest and the player is mid-endless, snap progress
+		if daily_quest.objective_type == "floor" and SaveSystem.endless_mode:
+			daily_quest.progress = min(daily_quest.target, SaveSystem.current_endless_floor)
+	_save_daily()
+	quests_changed.emit()
+
+
+func _check_complete_daily() -> void:
+	if daily_quest and daily_quest.progress >= daily_quest.target and not daily_quest.completed:
+		_grant_daily()
+
+
+func _grant_daily() -> void:
+	daily_quest.completed = true
+	var players := get_tree().get_nodes_in_group("player")
+	if not players.is_empty():
+		var p = players[0]
+		if p.stats:
+			p.stats.gold += daily_quest.gold_reward
+			EventBus.player_gold_changed.emit(p.stats.gold)
+			if p.has_method("gain_xp"):
+				p.gain_xp(daily_quest.xp_reward)
+		EventBus.show_floating_text.emit(
+			"DAILY: " + daily_quest.title,
+			p.global_position + Vector3(0, 3.4, 0),
+			Color(1, 0.7, 0.3)
+		)
+	_save_daily()
+	quest_completed.emit(daily_quest)
+	quests_changed.emit()
+
+
+func _load_daily() -> void:
+	if not FileAccess.file_exists(DAILY_PATH):
+		return
+	var f := FileAccess.open(DAILY_PATH, FileAccess.READ)
+	if f == null:
+		return
+	var parsed = JSON.parse_string(f.get_as_text())
+	f.close()
+	if not (parsed is Dictionary):
+		return
+	daily_seed_date = String(parsed.get("seed_date", ""))
+	var q_data = parsed.get("quest", null)
+	if q_data is Dictionary and q_data.has("id"):
+		var template_id: String = String(q_data.id)
+		daily_quest = QuestDatabase.create(template_id)
+		if daily_quest:
+			daily_quest.gold_reward = int(daily_quest.gold_reward * DAILY_REWARD_MULT)
+			daily_quest.xp_reward = int(daily_quest.xp_reward * DAILY_REWARD_MULT)
+			daily_quest.progress = int(q_data.get("progress", 0))
+			daily_quest.completed = bool(q_data.get("completed", false))
+
+
+func _save_daily() -> void:
+	var data: Dictionary = {"seed_date": daily_seed_date, "quest": null}
+	if daily_quest:
+		data.quest = {
+			"id": daily_quest.id,
+			"progress": daily_quest.progress,
+			"completed": daily_quest.completed,
+		}
+	var f := FileAccess.open(DAILY_PATH, FileAccess.WRITE)
+	if f == null:
+		return
+	f.store_string(JSON.stringify(data, "\t"))
+	f.close()
+
+
+# --- Granting -----------------------------------------------------
 
 func _grant(q: Quest) -> void:
 	q.completed = true
