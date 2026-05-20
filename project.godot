@@ -30,6 +30,7 @@ AudioManager="*res://scripts/autoload/AudioManager.gd"
 QuestSystem="*res://scripts/autoload/QuestSystem.gd"
 AchievementManager="*res://scripts/autoload/AchievementManager.gd"
 TutorialManager="*res://scripts/autoload/TutorialManager.gd"
+ControlsManager="*res://scripts/autoload/ControlsManager.gd"
 
 [display]
 

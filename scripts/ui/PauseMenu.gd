@@ -20,7 +20,12 @@ extends CanvasLayer
 @onready var master_label: Label = $Root/SettingsPanel/Margin/VBox/Master/MasterValue
 @onready var sfx_label: Label = $Root/SettingsPanel/Margin/VBox/SFX/SFXValue
 @onready var music_label: Label = $Root/SettingsPanel/Margin/VBox/Music/MusicValue
+@onready var controls_box: VBoxContainer = $Root/SettingsPanel/Margin/VBox/ControlsBox
 @onready var back_button: Button = $Root/SettingsPanel/Margin/VBox/BackButton
+
+# Key-capture state — set while we wait for the next keypress after a Rebind click
+var _capturing_action: String = ""
+var _capture_button: Button = null
 
 const HUB_PATH: String = "res://scenes/world/HubTown.tscn"
 const MAIN_MENU_PATH: String = "res://scenes/ui/MainMenu.tscn"
@@ -53,6 +58,7 @@ func _ready() -> void:
 	sfx_slider.value_changed.connect(_on_sfx_changed)
 	music_slider.value_changed.connect(_on_music_changed)
 	_refresh_volume_labels()
+	_build_controls()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -133,3 +139,60 @@ func _refresh_volume_labels() -> void:
 	master_label.text = "%d%%" % int(AudioManager.master_volume * 100)
 	sfx_label.text = "%d%%" % int(AudioManager.sfx_volume * 100)
 	music_label.text = "%d%%" % int(AudioManager.music_volume * 100)
+
+
+# --- Controls / key rebinding -----------------------------------
+
+func _build_controls() -> void:
+	for c in controls_box.get_children():
+		c.queue_free()
+	for action in ControlsManager.REBINDABLE:
+		var row := HBoxContainer.new()
+		row.custom_minimum_size = Vector2(0, 30)
+		var label := Label.new()
+		label.text = ControlsManager.LABELS.get(action, action.capitalize())
+		label.custom_minimum_size = Vector2(140, 0)
+		label.add_theme_font_size_override("font_size", 13)
+		row.add_child(label)
+		var btn := Button.new()
+		btn.text = ControlsManager.get_current_key_text(action)
+		btn.custom_minimum_size = Vector2(140, 28)
+		btn.add_theme_font_size_override("font_size", 13)
+		btn.pressed.connect(_start_capture.bind(action, btn))
+		row.add_child(btn)
+		controls_box.add_child(row)
+
+
+func _start_capture(action: String, btn: Button) -> void:
+	# If something else was already capturing, cancel it first
+	if _capture_button:
+		_capture_button.text = ControlsManager.get_current_key_text(_capturing_action)
+	_capturing_action = action
+	_capture_button = btn
+	btn.text = "Press a key..."
+
+
+func _input(event: InputEvent) -> void:
+	# Only consume input when actively waiting for a key for a rebind
+	if _capturing_action == "" or _capture_button == null:
+		return
+	if not (event is InputEventKey):
+		return
+	var ev := event as InputEventKey
+	if not ev.pressed or ev.echo:
+		return
+	# Esc cancels the capture without changing anything
+	if ev.keycode == KEY_ESCAPE:
+		_capture_button.text = ControlsManager.get_current_key_text(_capturing_action)
+		_clear_capture()
+		get_viewport().set_input_as_handled()
+		return
+	ControlsManager.rebind(_capturing_action, ev.physical_keycode)
+	_capture_button.text = ControlsManager.get_current_key_text(_capturing_action)
+	_clear_capture()
+	get_viewport().set_input_as_handled()
+
+
+func _clear_capture() -> void:
+	_capturing_action = ""
+	_capture_button = null
