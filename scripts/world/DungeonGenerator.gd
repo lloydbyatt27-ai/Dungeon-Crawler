@@ -354,12 +354,14 @@ func _populate_room(room: Dictionary) -> void:
 			_rng.randf_range(-size.y * 0.35, size.y * 0.35)
 		)
 		_apply_difficulty(enemy)
+		_apply_biome_flavor(enemy)
 	# Boss
 	if spec.get("boss", false) and goblin_chief_scene:
 		var boss := goblin_chief_scene.instantiate()
 		add_child(boss)
 		boss.global_position = center + Vector3(0, 0, -size.y * 0.25)
 		_apply_difficulty(boss)
+		_apply_biome_flavor(boss)
 	# Mini-boss (side branch) — beefier Orc Brute
 	if spec.get("mini_boss", false) and orc_brute_scene:
 		var brute := orc_brute_scene.instantiate()
@@ -374,6 +376,7 @@ func _populate_room(room: Dictionary) -> void:
 		if "xp_value" in brute:
 			brute.xp_value = 120
 		_apply_difficulty(brute)
+		_apply_biome_flavor(brute)
 	# Chest
 	if spec.get("chest", false) and chest_scene:
 		var chest := chest_scene.instantiate()
@@ -388,6 +391,38 @@ func _populate_room(room: Dictionary) -> void:
 		var shrine := shrine_scene.instantiate()
 		add_child(shrine)
 		shrine.global_position = center
+
+
+## Apply biome flavor: tint the enemy's body material and append a name
+## prefix (visible in the floating "ENRAGED!" boss text and in death feedback).
+## Skips the boss so the named boss "Grakk the Brute" doesn't become
+## "Bone Grakk the Brute" etc.
+func _apply_biome_flavor(enemy: Node) -> void:
+	if current_biome.is_empty():
+		return
+	var prefix: String = current_biome.get("enemy_prefix", "")
+	var tint: Color = current_biome.get("enemy_tint", Color.WHITE)
+	var is_boss_ref: bool = enemy.get("is_boss") if "is_boss" in enemy else false
+	# Body tint
+	var body_mesh: MeshInstance3D = enemy.get_node_or_null("Body") as MeshInstance3D
+	if body_mesh:
+		var original := body_mesh.get_surface_override_material(0)
+		if original is StandardMaterial3D:
+			var tinted: StandardMaterial3D = original.duplicate()
+			tinted.albedo_color = Color(
+				original.albedo_color.r * tint.r,
+				original.albedo_color.g * tint.g,
+				original.albedo_color.b * tint.b,
+				original.albedo_color.a
+			)
+			body_mesh.set_surface_override_material(0, tinted)
+			# Make sure the enemy's flash-restore later returns to the tinted material
+			if "_body_default_material" in enemy:
+				enemy._body_default_material = tinted
+	# Name prefix (skip for boss to preserve their named title)
+	if not is_boss_ref and prefix != "" and "display_name" in enemy:
+		if enemy.display_name == "":
+			enemy.display_name = prefix
 
 
 ## Apply the current run's difficulty + endless-floor multipliers to an enemy.

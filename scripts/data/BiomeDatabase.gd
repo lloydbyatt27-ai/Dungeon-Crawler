@@ -11,6 +11,8 @@ const BIOMES: Array = [
 		"light_tint":     Color(1.0, 1.0, 1.0),
 		"sun_color":      Color(1.0, 0.93, 0.82),
 		"sun_energy":     0.6,
+		"enemy_tint":     Color(1.0, 1.0, 1.0),
+		"enemy_prefix":   "",  # no prefix in the base biome
 	},
 	{
 		"name": "Crypt",
@@ -19,6 +21,8 @@ const BIOMES: Array = [
 		"light_tint":     Color(0.55, 0.80, 1.0),
 		"sun_color":      Color(0.60, 0.78, 1.0),
 		"sun_energy":     0.5,
+		"enemy_tint":     Color(0.78, 0.88, 1.0),  # bone-pale
+		"enemy_prefix":   "Bone",
 	},
 	{
 		"name": "Swamp",
@@ -27,6 +31,8 @@ const BIOMES: Array = [
 		"light_tint":     Color(0.70, 1.0, 0.60),
 		"sun_color":      Color(0.65, 0.90, 0.55),
 		"sun_energy":     0.45,
+		"enemy_tint":     Color(0.85, 1.0, 0.65),
+		"enemy_prefix":   "Bog",
 	},
 	{
 		"name": "Inferno",
@@ -35,6 +41,8 @@ const BIOMES: Array = [
 		"light_tint":     Color(1.0,  0.55, 0.25),
 		"sun_color":      Color(1.0,  0.50, 0.30),
 		"sun_energy":     0.55,
+		"enemy_tint":     Color(1.0, 0.60, 0.50),
+		"enemy_prefix":   "Hellforged",
 	},
 ]
 
