@@ -76,17 +76,75 @@ const RARITY_WEIGHTS: Dictionary = {
 	"RARE":     10,
 }
 
+# Number of affixes per rarity tier
+const RARITY_AFFIXES: Dictionary = {
+	"COMMON":    {"prefixes": 0, "suffixes": 0},
+	"UNCOMMON":  {"prefixes": 1, "suffixes": 0},
+	"RARE":      {"prefixes": 1, "suffixes": 1},
+	"EPIC":      {"prefixes": 2, "suffixes": 1},
+	"LEGENDARY": {"prefixes": 0, "suffixes": 0},  # legendaries are hand-tuned
+}
 
+
+## Roll a random item: pick a COMMON base from the pool, then layer affixes
+## based on the rolled rarity. Common items stay vanilla; uncommon adds a
+## prefix; rare gets a prefix + suffix; epic gets two prefixes + a suffix.
 static func generate_random_item(item_level: int = 1) -> Item:
-	var rarity := _pick_rarity()
-	var candidates: Array = []
+	var rarity_id: String = _pick_rarity()
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+
+	# Pick a base — for Common we use the Common pool; for higher tiers we
+	# also start from Common (better) or Uncommon templates to lean on affixes.
+	var base_pool: Array = []
 	for t in ITEM_TEMPLATES:
-		if t.rarity == rarity:
-			candidates.append(t)
-	if candidates.is_empty():
+		# Use only Common bases for rolled rarities; Uncommon/Rare templates
+		# are reserved for boss-tier hand-tuned drops via create_by_id.
+		if t.rarity == "COMMON":
+			base_pool.append(t)
+	if base_pool.is_empty():
 		return null
-	var template: Dictionary = candidates[randi() % candidates.size()]
-	return _create_from_template(template, item_level)
+	var template: Dictionary = base_pool[rng.randi() % base_pool.size()]
+	var item := _create_from_template(template, item_level)
+
+	# Promote to the rolled rarity and apply affixes
+	item.rarity = Item.Rarity[rarity_id]
+	var roll_count: Dictionary = RARITY_AFFIXES.get(rarity_id, {"prefixes": 0, "suffixes": 0})
+	var type_id: String = Item.ItemType.keys()[item.item_type]
+	var prefix_names: Array = []
+	var suffix_names: Array = []
+	for _i in range(int(roll_count.prefixes)):
+		var pre: Dictionary = AffixDatabase.roll_prefix(type_id, rng)
+		if not pre.is_empty():
+			AffixDatabase.apply_to_item(item, pre, rng)
+			prefix_names.append(pre.name)
+	for _i in range(int(roll_count.suffixes)):
+		var suf: Dictionary = AffixDatabase.roll_suffix(type_id, rng)
+		if not suf.is_empty():
+			AffixDatabase.apply_to_item(item, suf, rng)
+			suffix_names.append(suf.name)
+
+	# Compose the affixed name: "Vicious Iron Sword of Haste"
+	var name_parts: Array = []
+	if not prefix_names.is_empty():
+		name_parts.append(" ".join(prefix_names))
+	name_parts.append(template.name)
+	if not suffix_names.is_empty():
+		name_parts.append(" ".join(suffix_names))
+	item.display_name = " ".join(name_parts)
+
+	# Recompute sell_value to account for new affix stats
+	item.sell_value = _compute_sell_value(item)
+	return item
+
+
+static func _compute_sell_value(item: Item) -> int:
+	var v: float = item.weapon_damage * 3.0 + item.armor * 2.0 + item.max_hp_bonus * 0.5
+	v += (item.strength_bonus + item.agility_bonus + item.intelligence_bonus + item.stamina_bonus) * 5.0
+	v += item.crit_chance_bonus * 200.0
+	v += item.crit_damage_bonus * 50.0
+	v *= 1.0 + float(item.rarity) * 0.5
+	return max(1, int(v))
 
 
 static func create_by_id(item_id: String) -> Item:
