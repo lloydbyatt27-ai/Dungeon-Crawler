@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/HUD.gd" id="1_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/MiniMap.tscn" id="2_minimap"]
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_hud")
@@ -66,6 +67,8 @@ custom_minimum_size = Vector2(340, 8)
 max_value = 100.0
 value = 0.0
 show_percentage = false
+
+[node name="MiniMap" parent="Root" instance=ExtResource("2_minimap")]
 
 [node name="GoldLabel" type="Label" parent="Root"]
 anchors_preset = 1

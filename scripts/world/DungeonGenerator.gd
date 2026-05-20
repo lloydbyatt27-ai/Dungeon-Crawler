@@ -70,10 +70,11 @@ signal generation_complete(player_spawn: Vector3)
 
 var _rng: RandomNumberGenerator
 var _player_spawn: Vector3 = Vector3.ZERO
-var _generated_rooms: Array = []
+var generated_rooms: Array = []  # public — read by the MiniMap
 
 
 func _ready() -> void:
+	add_to_group("dungeon_generator")
 	_rng = RandomNumberGenerator.new()
 	if seed != 0:
 		_rng.seed = seed
@@ -125,7 +126,7 @@ func _generate() -> void:
 		if i == sequence.size() - 1:
 			_build_wall_box(Vector3(0, wall_height * 0.5, z_cursor - size.y), Vector3(size.x, wall_height, wall_thickness))
 
-		_generated_rooms.append({"type": sequence[i], "center": center, "size": size})
+		generated_rooms.append({"type": sequence[i], "center": center, "size": size})
 		z_cursor -= size.y
 
 
@@ -293,4 +294,4 @@ func _emit_complete() -> void:
 
 
 func get_room_count() -> int:
-	return _generated_rooms.size()
+	return generated_rooms.size()
