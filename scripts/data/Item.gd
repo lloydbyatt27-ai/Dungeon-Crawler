@@ -3,7 +3,7 @@ extends Resource
 ## Self-contained item data. Generated from ItemDatabase or hand-authored.
 ## Equipping applies stat bonuses to the character's CharacterStats.
 
-enum ItemType { WEAPON, OFFHAND, ARMOR, CONSUMABLE, MISC }
+enum ItemType { WEAPON, OFFHAND, ARMOR, HELMET, GLOVES, BOOTS, CONSUMABLE, MISC }
 enum Rarity { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY }
 
 @export var item_id: String = ""
@@ -36,6 +36,9 @@ func get_slot() -> String:
 		ItemType.WEAPON:  return "weapon"
 		ItemType.OFFHAND: return "offhand"
 		ItemType.ARMOR:   return "armor"
+		ItemType.HELMET:  return "helmet"
+		ItemType.GLOVES:  return "gloves"
+		ItemType.BOOTS:   return "boots"
 		_: return ""
 
 

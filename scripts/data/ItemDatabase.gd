@@ -63,6 +63,36 @@ const ITEM_TEMPLATES: Array = [
 	  "armor": 18.0, "max_hp_bonus": 45.0, "stamina_bonus": 2, "strength_bonus": 1,
 	  "description": "A wall of iron between you and the world." },
 
+	# --- Helmets (COMMON) ---
+	{ "id": "leather_cap", "name": "Leather Cap", "type": "HELMET", "rarity": "COMMON",
+	  "armor": 3.0, "max_hp_bonus": 6.0 },
+	{ "id": "iron_helm", "name": "Iron Helm", "type": "HELMET", "rarity": "COMMON",
+	  "armor": 6.0, "max_hp_bonus": 8.0, "stamina_bonus": 1 },
+	# --- Helmets (RARE) ---
+	{ "id": "crown_of_vigil", "name": "Crown of Vigil", "type": "HELMET", "rarity": "RARE",
+	  "armor": 14.0, "max_hp_bonus": 30.0, "stamina_bonus": 2, "intelligence_bonus": 2,
+	  "description": "Forged for sentinels of the inner sanctum." },
+
+	# --- Gloves (COMMON) ---
+	{ "id": "leather_gloves", "name": "Leather Gloves", "type": "GLOVES", "rarity": "COMMON",
+	  "armor": 2.0, "agility_bonus": 1 },
+	{ "id": "iron_gauntlets", "name": "Iron Gauntlets", "type": "GLOVES", "rarity": "COMMON",
+	  "armor": 5.0, "strength_bonus": 1 },
+	# --- Gloves (RARE) ---
+	{ "id": "gauntlets_of_power", "name": "Gauntlets of Power", "type": "GLOVES", "rarity": "RARE",
+	  "armor": 10.0, "weapon_damage": 4.0, "strength_bonus": 3, "crit_damage_bonus": 0.20,
+	  "description": "Each strike lands as if from twice your weight." },
+
+	# --- Boots (COMMON) ---
+	{ "id": "worn_boots", "name": "Worn Boots", "type": "BOOTS", "rarity": "COMMON",
+	  "armor": 2.0, "agility_bonus": 1 },
+	{ "id": "iron_boots", "name": "Iron Boots", "type": "BOOTS", "rarity": "COMMON",
+	  "armor": 5.0, "max_hp_bonus": 8.0 },
+	# --- Boots (RARE) ---
+	{ "id": "boots_of_swiftness", "name": "Boots of Swiftness", "type": "BOOTS", "rarity": "RARE",
+	  "armor": 8.0, "agility_bonus": 4, "crit_chance_bonus": 0.04,
+	  "description": "Hard to follow, harder to catch." },
+
 	# --- Boss-locked LEGENDARY drops ---
 	{ "id": "chieftains_cleaver", "name": "Chieftain's Cleaver", "type": "WEAPON", "rarity": "LEGENDARY",
 	  "weapon_damage": 28.0, "strength_bonus": 5, "stamina_bonus": 2,

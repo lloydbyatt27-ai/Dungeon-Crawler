@@ -16,10 +16,10 @@ const PREFIXES: Array = [
 	{"name": "Frozen",    "applies": ["WEAPON"], "stats": {"weapon_damage": Vector2(1, 3)}},
 	{"name": "Shadow",    "applies": ["WEAPON"], "stats": {"weapon_damage": Vector2(2, 4), "crit_damage_bonus": Vector2(0.10, 0.25)}},
 	{"name": "Piercing",  "applies": ["WEAPON"], "stats": {"weapon_damage": Vector2(3, 6)}},
-	# --- Defense-flavored (armor / offhand) ---
-	{"name": "Sturdy",    "applies": ["ARMOR", "OFFHAND"], "stats": {"armor": Vector2(2, 5)}},
-	{"name": "Reinforced","applies": ["ARMOR", "OFFHAND"], "stats": {"armor": Vector2(4, 9), "max_hp_bonus": Vector2(8, 18)}},
-	{"name": "Heavy",     "applies": ["ARMOR"], "stats": {"armor": Vector2(6, 14), "max_hp_bonus": Vector2(15, 30)}},
+	# --- Defense-flavored (armor / offhand / helmet / gloves / boots) ---
+	{"name": "Sturdy",    "applies": ["ARMOR", "OFFHAND", "HELMET", "GLOVES", "BOOTS"], "stats": {"armor": Vector2(2, 5)}},
+	{"name": "Reinforced","applies": ["ARMOR", "OFFHAND", "HELMET", "GLOVES", "BOOTS"], "stats": {"armor": Vector2(4, 9), "max_hp_bonus": Vector2(8, 18)}},
+	{"name": "Heavy",     "applies": ["ARMOR", "HELMET", "BOOTS"], "stats": {"armor": Vector2(6, 14), "max_hp_bonus": Vector2(15, 30)}},
 	# --- Any slot ---
 	{"name": "Blessed",   "applies": [], "stats": {"max_hp_bonus": Vector2(6, 15)}},
 	{"name": "Mystic",    "applies": [], "stats": {"max_mana_bonus": Vector2(5, 12), "intelligence_bonus": Vector2(1, 2)}},
@@ -37,8 +37,8 @@ const SUFFIXES: Array = [
 	{"name": "of Slaying",     "applies": ["WEAPON"], "stats": {"crit_chance_bonus": Vector2(0.03, 0.08)}},
 	{"name": "of Carnage",     "applies": ["WEAPON"], "stats": {"crit_damage_bonus": Vector2(0.15, 0.35)}},
 	{"name": "of the Vampire", "applies": ["WEAPON"], "stats": {"weapon_damage": Vector2(2, 5)}},
-	{"name": "of the Mountain","applies": ["ARMOR"],  "stats": {"armor": Vector2(4, 10), "stamina_bonus": Vector2(1, 3)}},
-	{"name": "of Warding",     "applies": ["ARMOR", "OFFHAND"], "stats": {"armor": Vector2(3, 7)}},
+	{"name": "of the Mountain","applies": ["ARMOR", "HELMET", "BOOTS"], "stats": {"armor": Vector2(4, 10), "stamina_bonus": Vector2(1, 3)}},
+	{"name": "of Warding",     "applies": ["ARMOR", "OFFHAND", "HELMET", "GLOVES", "BOOTS"], "stats": {"armor": Vector2(3, 7)}},
 	{"name": "of Vigor",       "applies": [], "stats": {"max_hp_bonus": Vector2(10, 25)}},
 	{"name": "of Insight",     "applies": [], "stats": {"max_mana_bonus": Vector2(8, 20)}},
 ]

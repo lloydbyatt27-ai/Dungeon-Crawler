@@ -102,7 +102,11 @@ func _rebuild_inventory() -> void:
 
 func _make_slot_button(item, slot_name: String, is_equipped: bool) -> Control:
 	var btn := Button.new()
-	btn.custom_minimum_size = Vector2(110, 60)
+	# Equipment row has 6 slots so use a narrower width
+	if is_equipped:
+		btn.custom_minimum_size = Vector2(96, 60)
+	else:
+		btn.custom_minimum_size = Vector2(110, 56)
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
 	btn.clip_text = true
 	if item == null:

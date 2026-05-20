@@ -7,13 +7,16 @@ signal items_changed
 signal equipment_changed(slot: String, item)
 
 const MAX_INVENTORY_SIZE: int = 24
-const SLOTS: Array = ["weapon", "offhand", "armor"]
+const SLOTS: Array = ["weapon", "offhand", "armor", "helmet", "gloves", "boots"]
 
 var items: Array[Item] = []
 var equipment: Dictionary = {
 	"weapon": null,
 	"offhand": null,
 	"armor": null,
+	"helmet": null,
+	"gloves": null,
+	"boots": null,
 }
 
 var _player: PlayerController
