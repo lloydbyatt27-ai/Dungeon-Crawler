@@ -79,6 +79,7 @@ var _telegraph_default_scale: Vector3 = Vector3.ONE
 @onready var body_mesh: MeshInstance3D = $Body
 @onready var telegraph_mesh: MeshInstance3D = $TelegraphMesh
 
+var status_effects: StatusEffectComponent
 var _player: Node3D
 var _body_default_material: Material
 var _flash_timer: float = 0.0
@@ -93,9 +94,34 @@ func _ready() -> void:
 	_body_default_material = body_mesh.get_surface_override_material(0)
 	_telegraph_default_scale = telegraph_mesh.scale
 
+	# Runtime-add a StatusEffectComponent (avoids editing every enemy scene)
+	status_effects = StatusEffectComponent.new()
+	status_effects.name = "StatusEffectComponent"
+	add_child(status_effects)
+	status_effects.owner_health_path = NodePath("../Health")
+	status_effects._health = health
+	hurtbox.set_status_component(status_effects)
+	status_effects.status_added.connect(_on_status_added)
+
 	var players := get_tree().get_nodes_in_group("player")
 	if players.size() > 0:
 		_player = players[0]
+
+
+func _on_status_added(effect_name: String) -> void:
+	var color := Color(1, 1, 1)
+	match effect_name:
+		"slow":    color = Color(0.6, 0.8, 1.0)
+		"stun":    color = Color(1.0, 0.95, 0.4)
+		"freeze":  color = Color(0.5, 0.9, 1.0)
+		"burn":    color = Color(1.0, 0.5, 0.2)
+		"bleed":   color = Color(1.0, 0.25, 0.25)
+		"poison":  color = Color(0.6, 1.0, 0.3)
+	EventBus.show_floating_text.emit(
+		effect_name.to_upper(),
+		global_position + Vector3(0, 2.4, 0),
+		color
+	)
 
 
 func _physics_process(delta: float) -> void:
@@ -116,6 +142,13 @@ func _physics_process(delta: float) -> void:
 
 	if not is_on_floor():
 		velocity.y -= gravity * delta
+
+	# Stunned / frozen — freeze in place, skip state ticks
+	if status_effects and status_effects.is_disabled() and state != State.DEAD:
+		velocity.x = move_toward(velocity.x, 0.0, friction * 2.0 * delta)
+		velocity.z = move_toward(velocity.z, 0.0, friction * 2.0 * delta)
+		move_and_slide()
+		return
 
 	match state:
 		State.IDLE:        _tick_idle(delta)
@@ -177,10 +210,11 @@ func _tick_aggro(delta: float) -> void:
 		return
 
 	move_dir.y = 0
+	var slow_mult: float = status_effects.move_speed_multiplier() if status_effects else 1.0
 	if move_dir.length_squared() > 0.01:
 		var d := move_dir.normalized()
-		velocity.x = move_toward(velocity.x, d.x * move_speed, acceleration * delta)
-		velocity.z = move_toward(velocity.z, d.z * move_speed, acceleration * delta)
+		velocity.x = move_toward(velocity.x, d.x * move_speed * slow_mult, acceleration * delta)
+		velocity.z = move_toward(velocity.z, d.z * move_speed * slow_mult, acceleration * delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 		velocity.z = move_toward(velocity.z, 0.0, friction * delta)

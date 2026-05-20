@@ -22,6 +22,7 @@ const SKILL_CATALOG: Dictionary = {
 		"base_damage": 22.0, "scaling_attr": "strength", "scaling_coef": 0.6,
 		"radius": 4.0,
 		"color": Color(1, 0.5, 0.15),
+		"statuses": [{"name": "stun", "duration": 1.2}],
 	},
 	"warcry": {
 		"display_name": "Warcry", "type": "buff",
@@ -34,6 +35,7 @@ const SKILL_CATALOG: Dictionary = {
 		"mana_cost": 30.0, "cooldown": 11.0,
 		"base_damage": 16.0, "scaling_attr": "strength", "scaling_coef": 0.4,
 		"color": Color(0.55, 0.9, 1),
+		"statuses": [{"name": "slow", "duration": 4.0, "magnitude": 0.5}],
 	},
 
 	# --- Mercenary ------------------------------------------------------
@@ -65,6 +67,7 @@ const SKILL_CATALOG: Dictionary = {
 		"base_damage": 28.0, "scaling_attr": "intelligence", "scaling_coef": 0.9,
 		"speed": 16.0, "radius": 0.5,
 		"color": Color(1, 0.5, 0.1),
+		"statuses": [{"name": "burn", "duration": 5.0, "magnitude": 6.0}],
 	},
 	"frost_nova": {
 		"display_name": "Frost Nova", "type": "aoe",
@@ -72,6 +75,7 @@ const SKILL_CATALOG: Dictionary = {
 		"base_damage": 26.0, "scaling_attr": "intelligence", "scaling_coef": 0.8,
 		"radius": 4.5,
 		"color": Color(0.5, 0.85, 1.0),
+		"statuses": [{"name": "freeze", "duration": 2.0}],
 	},
 	"mana_shield": {
 		"display_name": "Mana Shield", "type": "buff",
@@ -87,6 +91,7 @@ const SKILL_CATALOG: Dictionary = {
 		"base_damage": 32.0, "scaling_attr": "agility", "scaling_coef": 0.7,
 		"radius": 2.6,
 		"color": Color(0.55, 0.30, 0.65),
+		"statuses": [{"name": "bleed", "duration": 4.0, "magnitude": 4.0}],
 	},
 	"frenzy": {
 		"display_name": "Frenzy", "type": "buff",
@@ -99,6 +104,7 @@ const SKILL_CATALOG: Dictionary = {
 		"mana_cost": 22.0, "cooldown": 7.0,
 		"base_damage": 20.0, "scaling_attr": "agility", "scaling_coef": 0.5,
 		"color": Color(0.85, 0.15, 0.2),
+		"statuses": [{"name": "bleed", "duration": 6.0, "magnitude": 5.0}],
 	},
 
 	# --- Scout ----------------------------------------------------------
@@ -120,6 +126,7 @@ const SKILL_CATALOG: Dictionary = {
 		"base_damage": 40.0, "scaling_attr": "agility", "scaling_coef": 0.9,
 		"speed": 35.0, "radius": 0.35,
 		"color": Color(0.55, 0.95, 0.55),
+		"statuses": [{"name": "bleed", "duration": 5.0, "magnitude": 8.0}],
 	},
 }
 
@@ -223,6 +230,7 @@ func _cast_aoe(def: Dictionary, is_crit: bool) -> void:
 	var fx := aoe_scene.instantiate() as AoEEffect
 	get_tree().current_scene.add_child(fx)
 	fx.global_position = _player.global_position
+	fx.hitbox.apply_statuses = def.get("statuses", [])
 	fx.setup(dmg, is_crit, def.get("radius", -1.0), def.color)
 
 
@@ -233,6 +241,7 @@ func _cast_cone(def: Dictionary, is_crit: bool) -> void:
 	get_tree().current_scene.add_child(fx)
 	fx.global_position = _player.global_position
 	fx.rotation.y = _player.rotation.y
+	fx.hitbox.apply_statuses = def.get("statuses", [])
 	fx.setup(dmg, is_crit, def.color)
 
 
@@ -265,6 +274,7 @@ func _cast_projectile(def: Dictionary, is_crit: bool) -> void:
 	fx.color = def.color
 	fx.speed = def.get("speed", 22.0)
 	fx.radius = def.get("radius", 0.4)
+	fx.hitbox.apply_statuses = def.get("statuses", [])
 	# Player faces local -Z; use the basis to get world forward
 	var dir: Vector3 = -_player.global_transform.basis.z
 	dir.y = 0.0

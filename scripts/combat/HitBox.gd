@@ -15,6 +15,10 @@ signal hit_landed(target: HurtBox, info: DamageInfo)
 @export var is_crit: bool = false
 @export var element: String = ""
 
+# Status effects this hit applies. Each entry: {name, duration, magnitude}.
+# Set externally before/at activation; HitBox copies into the DamageInfo.
+var apply_statuses: Array = []
+
 var active: bool = false
 var _hit_targets: Array[HurtBox] = []
 var _source: Node
@@ -58,6 +62,7 @@ func _on_area_entered(area: Area3D) -> void:
 	info.knockback = knockback
 	info.is_crit = is_crit
 	info.element = element
+	info.statuses = apply_statuses
 	hurtbox.receive_hit(info)
 	hit_landed.emit(hurtbox, info)
 
