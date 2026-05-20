@@ -1,0 +1,46 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/TutorialOverlay.gd" id="1_tut"]
+
+[node name="TutorialOverlay" type="CanvasLayer"]
+layer = 9
+script = ExtResource("1_tut")
+
+[node name="Root" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Root"]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -260.0
+offset_top = 60.0
+offset_right = 260.0
+offset_bottom = 140.0
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="Root/Panel"]
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="Root/Panel/Margin"]
+theme_override_constants/separation = 4
+
+[node name="Header" type="Label" parent="Root/Panel/Margin/VBox"]
+text = "TIP"
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.95, 0.85, 0.35, 1)
+horizontal_alignment = 1
+
+[node name="HintLabel" type="Label" parent="Root/Panel/Margin/VBox"]
+text = "WASD to move    .    Space to dodge"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.95, 0.95, 0.95, 1)
+horizontal_alignment = 1
+autowrap_mode = 3

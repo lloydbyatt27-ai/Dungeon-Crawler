@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
 [ext_resource type="Script" path="res://scripts/world/IsometricCamera.gd" id="2_camera"]
@@ -18,6 +18,7 @@
 [ext_resource type="PackedScene" path="res://scenes/world/QuestGiver.tscn" id="16_giver"]
 [ext_resource type="PackedScene" path="res://scenes/ui/QuestLogUI.tscn" id="17_questlog"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ToastNotificationUI.tscn" id="18_toast"]
+[ext_resource type="PackedScene" path="res://scenes/ui/TutorialOverlay.tscn" id="19_tutorial"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
 size = Vector2(28, 28)
@@ -192,6 +193,8 @@ damage_number_scene = ExtResource("5_dmgnum")
 [node name="QuestLogUI" parent="." instance=ExtResource("17_questlog")]
 
 [node name="ToastNotificationUI" parent="." instance=ExtResource("18_toast")]
+
+[node name="TutorialOverlay" parent="." instance=ExtResource("19_tutorial")]
 
 [node name="PauseMenu" parent="." instance=ExtResource("12_pause")]
 show_quit_to_hub = false
