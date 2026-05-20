@@ -31,6 +31,7 @@ extends Node
 @export_range(0.0, 1.0) var music_volume: float = 0.5
 
 const SFX_POOL_SIZE: int = 8
+const SETTINGS_PATH: String = "user://settings.json"
 
 var _music_player: AudioStreamPlayer
 var _sfx_pool: Array[AudioStreamPlayer] = []
@@ -38,6 +39,7 @@ var _sfx_round_robin: int = 0
 
 
 func _ready() -> void:
+	_load_settings()
 	_music_player = AudioStreamPlayer.new()
 	_music_player.bus = "Master"
 	add_child(_music_player)
@@ -97,6 +99,38 @@ func play_music(stream: AudioStream) -> void:
 
 func stop_music() -> void:
 	_music_player.stop()
+
+
+# --- Settings persistence ----------------------------------------
+
+func save_settings() -> void:
+	var data := {
+		"master_volume": master_volume,
+		"sfx_volume": sfx_volume,
+		"music_volume": music_volume,
+	}
+	var f := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
+	if f == null:
+		return
+	f.store_string(JSON.stringify(data, "\t"))
+	f.close()
+	# Update the live music player gain if anything is currently playing
+	if _music_player and _music_player.playing:
+		_music_player.volume_db = linear_to_db(master_volume * music_volume)
+
+
+func _load_settings() -> void:
+	if not FileAccess.file_exists(SETTINGS_PATH):
+		return
+	var f := FileAccess.open(SETTINGS_PATH, FileAccess.READ)
+	if f == null:
+		return
+	var parsed = JSON.parse_string(f.get_as_text())
+	f.close()
+	if parsed is Dictionary:
+		master_volume = clamp(float(parsed.get("master_volume", master_volume)), 0.0, 1.0)
+		sfx_volume = clamp(float(parsed.get("sfx_volume", sfx_volume)), 0.0, 1.0)
+		music_volume = clamp(float(parsed.get("music_volume", music_volume)), 0.0, 1.0)
 
 
 # --- Listeners ------------------------------------------------------

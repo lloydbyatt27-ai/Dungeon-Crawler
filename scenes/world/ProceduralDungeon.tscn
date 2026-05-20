@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
 [ext_resource type="Script" path="res://scripts/world/IsometricCamera.gd" id="2_camera"]
@@ -15,6 +15,7 @@
 [ext_resource type="PackedScene" path="res://scenes/enemies/SkeletonMage.tscn" id="13_mage"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/OrcBrute.tscn" id="14_brute"]
 [ext_resource type="PackedScene" path="res://scenes/world/Shrine.tscn" id="15_shrine"]
+[ext_resource type="PackedScene" path="res://scenes/ui/PauseMenu.tscn" id="16_pause"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
 albedo_color = Color(0.22, 0.21, 0.20, 1)
@@ -62,3 +63,5 @@ damage_number_scene = ExtResource("9_dmgnum")
 [node name="InventoryUI" parent="." instance=ExtResource("10_invui")]
 
 [node name="AreaCompleteScreen" parent="." instance=ExtResource("11_area")]
+
+[node name="PauseMenu" parent="." instance=ExtResource("16_pause")]
