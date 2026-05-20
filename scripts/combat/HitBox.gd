@@ -65,6 +65,10 @@ func _on_area_entered(area: Area3D) -> void:
 	info.statuses = apply_statuses
 	hurtbox.receive_hit(info)
 	hit_landed.emit(hurtbox, info)
+	# Juice on crits — applies whether it was a player or enemy hit
+	if is_crit:
+		EventBus.request_screen_shake.emit(0.18, 10.0)
+		EventBus.request_hit_stop.emit(0.07)
 
 	if auto_deactivate:
 		deactivate()

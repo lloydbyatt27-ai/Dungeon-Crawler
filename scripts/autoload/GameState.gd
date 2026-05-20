@@ -26,15 +26,29 @@ var _run_start_snapshot: Dictionary = {}
 var _last_gold_total: int = 0
 
 
+var _hit_stop_end_ms: float = 0.0
+
+
 func _ready() -> void:
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.item_picked_up.connect(_on_item_picked_up)
 	EventBus.player_gold_changed.connect(_on_gold_changed)
+	EventBus.request_hit_stop.connect(_apply_hit_stop)
+
+
+func _apply_hit_stop(duration: float) -> void:
+	# Wall-clock end time so the freeze isn't its own foot-shooting target
+	var now_ms: float = Time.get_ticks_msec()
+	_hit_stop_end_ms = max(_hit_stop_end_ms, now_ms + duration * 1000.0)
+	Engine.time_scale = 0.05
 
 
 func _process(delta: float) -> void:
 	if not is_paused:
 		run_stats.play_time_seconds += delta
+	if _hit_stop_end_ms > 0.0 and Time.get_ticks_msec() >= _hit_stop_end_ms:
+		Engine.time_scale = 1.0
+		_hit_stop_end_ms = 0.0
 
 
 func toggle_pause() -> void:

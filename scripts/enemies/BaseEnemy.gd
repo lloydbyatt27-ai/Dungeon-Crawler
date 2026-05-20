@@ -80,6 +80,7 @@ var _telegraph_default_scale: Vector3 = Vector3.ONE
 @onready var telegraph_mesh: MeshInstance3D = $TelegraphMesh
 
 var status_effects: StatusEffectComponent
+var status_icon_label: Label3D
 var _player: Node3D
 var _body_default_material: Material
 var _flash_timer: float = 0.0
@@ -103,9 +104,55 @@ func _ready() -> void:
 	hurtbox.set_status_component(status_effects)
 	status_effects.status_added.connect(_on_status_added)
 
+	# Floating status-icon label above the head
+	status_icon_label = Label3D.new()
+	status_icon_label.name = "StatusIcons"
+	status_icon_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	status_icon_label.no_depth_test = true
+	status_icon_label.fixed_size = true
+	status_icon_label.pixel_size = 0.007
+	status_icon_label.font_size = 28
+	status_icon_label.outline_size = 5
+	status_icon_label.position = Vector3(0, 2.4, 0)
+	status_icon_label.text = ""
+	add_child(status_icon_label)
+
 	var players := get_tree().get_nodes_in_group("player")
 	if players.size() > 0:
 		_player = players[0]
+
+
+const _STATUS_ICONS: Dictionary = {
+	"slow":   "❄",
+	"freeze": "✶",
+	"stun":   "✱",
+	"burn":   "▲",
+	"bleed":  "●",
+	"poison": "☣",
+}
+const _STATUS_COLORS: Dictionary = {
+	"slow":   Color(0.6, 0.85, 1.0),
+	"freeze": Color(0.7, 0.95, 1.0),
+	"stun":   Color(1.0, 0.95, 0.4),
+	"burn":   Color(1.0, 0.55, 0.20),
+	"bleed":  Color(1.0, 0.30, 0.30),
+	"poison": Color(0.6, 1.0, 0.30),
+}
+
+
+func _update_status_icons() -> void:
+	if status_icon_label == null or status_effects == null:
+		return
+	var active := status_effects.get_active_summary()
+	if active.is_empty():
+		status_icon_label.text = ""
+		return
+	# Concatenate icon glyphs; tint to the first active effect's color
+	var glyphs: Array[String] = []
+	for s in active:
+		glyphs.append(_STATUS_ICONS.get(s, "?"))
+	status_icon_label.text = " ".join(glyphs)
+	status_icon_label.modulate = _STATUS_COLORS.get(active[0], Color.WHITE)
 
 
 func _on_status_added(effect_name: String) -> void:
@@ -139,6 +186,8 @@ func _physics_process(delta: float) -> void:
 		_flash_timer -= delta
 		if _flash_timer <= 0.0:
 			body_mesh.set_surface_override_material(0, _body_default_material)
+
+	_update_status_icons()
 
 	if not is_on_floor():
 		velocity.y -= gravity * delta
@@ -396,12 +445,47 @@ func _enter_phase_2() -> void:
 
 
 func _die_animation() -> void:
+	_spawn_death_puff()
+	# Bigger shake on boss kill
+	if is_boss:
+		EventBus.request_screen_shake.emit(0.6, 6.0)
+		EventBus.request_hit_stop.emit(0.18)
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(body_mesh, "rotation:x", deg_to_rad(-90.0), 0.4)
 	tween.tween_property(self, "position:y", position.y - 0.4, 0.4)
 	tween.chain().tween_interval(1.0)
 	tween.chain().tween_property(body_mesh, "transparency", 1.0, 0.4)
 	tween.chain().tween_callback(queue_free)
+
+
+func _spawn_death_puff() -> void:
+	# A handful of small spheres that pop outward and shrink to nothing.
+	var n: int = 6 if not is_boss else 16
+	var color: Color = (_body_default_material as StandardMaterial3D).albedo_color if _body_default_material is StandardMaterial3D else Color(0.5, 0.5, 0.5)
+	for i in range(n):
+		var puff := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = 0.12
+		sm.height = 0.24
+		sm.radial_segments = 6
+		sm.rings = 3
+		puff.mesh = sm
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = color
+		mat.emission_enabled = true
+		mat.emission = color * 1.3
+		mat.emission_energy_multiplier = 0.6
+		puff.set_surface_override_material(0, mat)
+		get_tree().current_scene.add_child(puff)
+		puff.global_position = global_position + Vector3(0, 0.8, 0)
+		# Random radial pop
+		var angle := randf() * TAU
+		var horiz := Vector3(cos(angle), 0, sin(angle))
+		var target := puff.global_position + horiz * randf_range(0.8, 1.6) + Vector3(0, randf_range(0.2, 1.2), 0)
+		var tw := puff.create_tween().set_parallel(true)
+		tw.tween_property(puff, "global_position", target, 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.tween_property(puff, "scale", Vector3(0.05, 0.05, 0.05), 0.55)
+		tw.tween_callback(puff.queue_free).set_delay(0.55)
 
 
 # --- Utils -----------------------------------------------------------

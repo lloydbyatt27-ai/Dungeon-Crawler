@@ -19,10 +19,16 @@ extends Camera3D
 var _target: Node3D
 var _camera_offset: Vector3
 
+# Screen shake — additive offset that decays each frame.
+var _shake_offset: Vector3 = Vector3.ZERO
+var _shake_strength: float = 0.0
+var _shake_decay: float = 8.0
+
 
 func _ready() -> void:
 	projection = PROJECTION_ORTHOGONAL
 	size = orthographic_size
+	EventBus.request_screen_shake.connect(shake)
 
 	# Compute fixed offset from the target along the pitch/yaw vector.
 	var pitch := deg_to_rad(pitch_degrees)
@@ -49,13 +55,31 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# Tick down the shake
+	if _shake_strength > 0.0:
+		_shake_strength = max(0.0, _shake_strength - _shake_decay * delta)
+		var s := _shake_strength
+		_shake_offset = Vector3(
+			randf_range(-s, s),
+			randf_range(-s, s) * 0.5,
+			randf_range(-s, s)
+		)
+	else:
+		_shake_offset = Vector3.ZERO
+
 	if _target == null:
 		return
 
 	var desired := _target.global_position + _camera_offset
-	global_position = global_position.lerp(desired, clamp(follow_speed * delta, 0.0, 1.0))
+	global_position = global_position.lerp(desired, clamp(follow_speed * delta, 0.0, 1.0)) + _shake_offset
 	look_at(_target.global_position, Vector3.UP)
 
 
 func set_target(node: Node3D) -> void:
 	_target = node
+
+
+func shake(strength: float = 0.4, decay: float = 8.0) -> void:
+	_shake_strength = max(_shake_strength, strength)
+	_shake_decay = decay
+

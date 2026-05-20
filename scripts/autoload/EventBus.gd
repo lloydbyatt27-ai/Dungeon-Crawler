@@ -39,4 +39,8 @@ signal boss_defeated(boss: Node)
 signal show_damage_number(amount: float, position: Vector3, is_crit: bool)
 signal show_floating_text(text: String, position: Vector3, color: Color)
 
+# --- Game feel ---
+signal request_screen_shake(strength: float, decay: float)
+signal request_hit_stop(duration: float)
+
 @warning_ignore_restore("unused_signal")
