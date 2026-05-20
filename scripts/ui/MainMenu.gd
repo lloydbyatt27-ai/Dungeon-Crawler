@@ -6,7 +6,7 @@ extends Control
 @onready var quit_button: Button = $Center/VBox/QuitButton
 @onready var save_info_label: Label = $Center/VBox/SaveInfo
 
-const DUNGEON_PATH: String = "res://scenes/world/TestDungeon.tscn"
+const DUNGEON_PATH: String = "res://scenes/world/ProceduralDungeon.tscn"
 const CLASS_SELECT_PATH: String = "res://scenes/ui/ClassSelect.tscn"
 
 

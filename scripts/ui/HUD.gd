@@ -73,7 +73,7 @@ func _make_skill_slot(skill_id: String, def: Dictionary, key: String) -> Diction
 	var root := Panel.new()
 	root.custom_minimum_size = Vector2(80, 80)
 	var bg := ColorRect.new()
-	bg.color = (def.icon_color as Color).darkened(0.4)
+	bg.color = (def.get("color", Color(0.5, 0.5, 0.5)) as Color).darkened(0.4)
 	bg.anchors_preset = 15
 	bg.anchor_right = 1.0
 	bg.anchor_bottom = 1.0

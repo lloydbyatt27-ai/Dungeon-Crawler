@@ -1,0 +1,56 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
+[ext_resource type="Script" path="res://scripts/world/IsometricCamera.gd" id="2_camera"]
+[ext_resource type="Script" path="res://scripts/world/DungeonGenerator.gd" id="3_gen"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/Goblin.tscn" id="4_goblin"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/GoblinChief.tscn" id="5_chief"]
+[ext_resource type="PackedScene" path="res://scenes/world/TreasureChest.tscn" id="6_chest"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="7_hud"]
+[ext_resource type="Script" path="res://scripts/ui/DamageNumberSpawner.gd" id="8_spawner"]
+[ext_resource type="PackedScene" path="res://scenes/ui/DamageNumber.tscn" id="9_dmgnum"]
+[ext_resource type="PackedScene" path="res://scenes/ui/InventoryUI.tscn" id="10_invui"]
+[ext_resource type="PackedScene" path="res://scenes/ui/AreaCompleteScreen.tscn" id="11_area"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+albedo_color = Color(0.22, 0.21, 0.20, 1)
+roughness = 0.95
+uv1_scale = Vector3(4, 4, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wall"]
+albedo_color = Color(0.36, 0.32, 0.28, 1)
+roughness = 0.85
+
+[node name="ProceduralDungeon" type="Node3D"]
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+
+[node name="DungeonGenerator" type="Node3D" parent="."]
+script = ExtResource("3_gen")
+goblin_scene = ExtResource("4_goblin")
+goblin_chief_scene = ExtResource("5_chief")
+chest_scene = ExtResource("6_chest")
+wall_material = SubResource("StandardMaterial3D_wall")
+floor_material = SubResource("StandardMaterial3D_floor")
+
+[node name="IsometricCamera" type="Camera3D" parent="."]
+script = ExtResource("2_camera")
+target_path = NodePath("../Player")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 10, 0)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.6
+shadow_enabled = true
+directional_shadow_max_distance = 80.0
+
+[node name="DamageNumberSpawner" type="Node" parent="."]
+script = ExtResource("8_spawner")
+damage_number_scene = ExtResource("9_dmgnum")
+
+[node name="HUD" parent="." instance=ExtResource("7_hud")]
+
+[node name="InventoryUI" parent="." instance=ExtResource("10_invui")]
+
+[node name="AreaCompleteScreen" parent="." instance=ExtResource("11_area")]

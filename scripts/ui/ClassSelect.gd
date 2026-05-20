@@ -12,7 +12,7 @@ extends Control
 @onready var begin_button: Button = $Center/VBox/BeginButton
 @onready var back_button: Button = $BackButton
 
-const DUNGEON_PATH: String = "res://scenes/world/TestDungeon.tscn"
+const DUNGEON_PATH: String = "res://scenes/world/ProceduralDungeon.tscn"
 const MAIN_MENU_PATH: String = "res://scenes/ui/MainMenu.tscn"
 
 var _selected_class: String = "Guardian"

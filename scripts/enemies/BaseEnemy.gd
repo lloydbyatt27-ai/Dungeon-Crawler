@@ -83,6 +83,12 @@ func _physics_process(delta: float) -> void:
 	_attack_cd = max(0.0, _attack_cd - delta)
 	_state_timer = max(0.0, _state_timer - delta)
 
+	# Late-bind to player if we spawned before the player joined the group
+	if _player == null:
+		var players := get_tree().get_nodes_in_group("player")
+		if not players.is_empty():
+			_player = players[0]
+
 	# Hit flash decay
 	if _flash_timer > 0.0:
 		_flash_timer -= delta
