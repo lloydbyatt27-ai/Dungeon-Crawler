@@ -67,8 +67,9 @@ func _on_body_entered(body: Node) -> void:
 
 func _pickup(player_node: Node) -> void:
 	_picked_up = true
-	monitoring = false
-	monitorable = false
+	# set_deferred — physics is mid-iteration, can't mutate area state inline
+	set_deferred("monitoring", false)
+	set_deferred("monitorable", false)
 	if player_node.has_method("get_inventory"):
 		var inv = player_node.get_inventory()
 		if inv:

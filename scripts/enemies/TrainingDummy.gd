@@ -53,7 +53,7 @@ func _on_died() -> void:
 	_dead = true
 	_respawn_timer = respawn_after
 	body_mesh.visible = false
-	hurtbox.monitorable = false
+	hurtbox.set_deferred("monitorable", false)
 
 
 func _respawn() -> void:

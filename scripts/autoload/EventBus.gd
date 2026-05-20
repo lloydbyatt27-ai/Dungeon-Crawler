@@ -2,6 +2,12 @@ extends Node
 ## Global signal bus for cross-system communication.
 ## Systems emit and listen here instead of holding direct references.
 ## Keeps coupling loose and makes refactoring safer.
+##
+## All signals on this autoload are intentionally declared here but emitted
+## and connected from other classes — the "unused_signal" warning is a
+## false positive in that pattern.
+
+@warning_ignore_start("unused_signal")
 
 # --- Combat ---
 signal player_dealt_damage(target: Node, amount: float, is_crit: bool)
@@ -31,3 +37,5 @@ signal boss_defeated(boss: Node)
 # --- UI ---
 signal show_damage_number(amount: float, position: Vector3, is_crit: bool)
 signal show_floating_text(text: String, position: Vector3, color: Color)
+
+@warning_ignore_restore("unused_signal")

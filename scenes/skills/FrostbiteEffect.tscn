@@ -20,7 +20,7 @@ size = Vector3(3.5, 1.4, 5.0)
 
 [node name="FrostbiteEffect" type="Node3D"]
 script = ExtResource("1_cone")
-range = 5.0
+cone_range = 5.0
 color = Color(0.55, 0.9, 1, 1)
 
 [node name="Mesh" type="MeshInstance3D" parent="."]

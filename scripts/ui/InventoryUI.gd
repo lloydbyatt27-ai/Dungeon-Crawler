@@ -53,12 +53,12 @@ func toggle() -> void:
 func _process(_delta: float) -> void:
 	if tooltip.visible:
 		var mp := get_viewport().get_mouse_position()
-		var offset := Vector2(18, 18)
-		var size := tooltip.size
+		var cursor_offset := Vector2(18, 18)
+		var tip_size := tooltip.size
 		var vp := get_viewport().get_visible_rect().size
-		var pos := mp + offset
-		if pos.x + size.x > vp.x: pos.x = mp.x - size.x - 8
-		if pos.y + size.y > vp.y: pos.y = mp.y - size.y - 8
+		var pos := mp + cursor_offset
+		if pos.x + tip_size.x > vp.x: pos.x = mp.x - tip_size.x - 8
+		if pos.y + tip_size.y > vp.y: pos.y = mp.y - tip_size.y - 8
 		tooltip.position = pos
 
 

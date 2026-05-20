@@ -3,7 +3,7 @@ extends Node3D
 ## Forward-facing cone effect for skills like Frostbite.
 ## The mesh is a flat triangle/wedge on the ground; the HitBox covers the cone area.
 
-@export var range: float = 5.0
+@export var cone_range: float = 5.0
 @export var damage: float = 15.0
 @export var hitbox_active_duration: float = 0.16
 @export var visual_duration: float = 0.55

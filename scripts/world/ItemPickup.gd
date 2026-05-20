@@ -74,8 +74,9 @@ func _on_body_entered(body: Node) -> void:
 		var inv = body.get_inventory()
 		if inv and inv.add_item(item):
 			_picked_up = true
-			monitoring = false
-			monitorable = false
+			# set_deferred — physics is mid-iteration, can't mutate area state inline
+			set_deferred("monitoring", false)
+			set_deferred("monitorable", false)
 			EventBus.show_floating_text.emit(
 				"+ " + item.display_name,
 				global_position + Vector3(0, 0.6, 0),

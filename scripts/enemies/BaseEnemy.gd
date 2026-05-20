@@ -230,7 +230,8 @@ func _on_damaged(info: DamageInfo) -> void:
 func _on_died() -> void:
 	_enter(State.DEAD)
 	attack_hitbox.deactivate()
-	hurtbox.monitorable = false
+	# set_deferred — Health.died is emitted from inside physics signal processing
+	hurtbox.set_deferred("monitorable", false)
 	telegraph_mesh.visible = false
 	_drop_loot()
 	EventBus.enemy_died.emit(self, global_position)

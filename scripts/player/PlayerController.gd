@@ -344,7 +344,7 @@ func _on_died() -> void:
 	state = State.DEAD
 	_cancel_attack()
 	melee_hitbox.deactivate()
-	hurtbox.monitorable = false
+	hurtbox.set_deferred("monitorable", false)
 	# Topple the body
 	var tween := create_tween()
 	tween.tween_property(body_mesh, "rotation:x", deg_to_rad(-90.0), 0.5)
