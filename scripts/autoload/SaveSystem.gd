@@ -15,6 +15,8 @@ extends Node
 
 const SAVE_PATH: String = "user://savegame.json"
 const META_PATH: String = "user://meta.json"
+const STASH_PATH: String = "user://stash.json"
+const STASH_CAPACITY: int = 50
 const VERSION: int = 1
 
 # Cached deserialized save (set by load_save), applied to the next player spawn.
@@ -32,6 +34,10 @@ var pending_difficulty: String = "Normal"
 var unlocked_difficulties: Array = ["Normal"]
 var current_run_difficulty: String = "Normal"  # active during a run
 
+# Cross-character stash (shared). Stored as Item instances; persisted to
+# user://stash.json as save-entry dicts {id, upgrade}.
+var stash: Array[Item] = []
+
 # Endless mode tracking (per-run, not persisted)
 var endless_mode: bool = false
 var current_endless_floor: int = 0
@@ -42,6 +48,7 @@ var run_summary: Dictionary = {}
 
 func _ready() -> void:
 	_load_meta()
+	_load_stash()
 
 
 func _load_meta() -> void:
@@ -76,6 +83,53 @@ func unlock_difficulty(tier: String) -> bool:
 	unlocked_difficulties.append(tier)
 	_save_meta()
 	return true
+
+
+# --- Cross-character stash ----------------------------------------
+
+func _load_stash() -> void:
+	stash.clear()
+	if not FileAccess.file_exists(STASH_PATH):
+		return
+	var f := FileAccess.open(STASH_PATH, FileAccess.READ)
+	if f == null:
+		return
+	var parsed = JSON.parse_string(f.get_as_text())
+	f.close()
+	if not (parsed is Array):
+		return
+	for entry in parsed:
+		var item := _item_from_save_entry(entry)
+		if item:
+			stash.append(item)
+
+
+func _save_stash() -> void:
+	var entries: Array = []
+	for item in stash:
+		entries.append({"id": item.item_id, "upgrade": item.upgrade_level})
+	var f := FileAccess.open(STASH_PATH, FileAccess.WRITE)
+	if f == null:
+		return
+	f.store_string(JSON.stringify(entries, "\t"))
+	f.close()
+
+
+func stash_add(item: Item) -> bool:
+	if item == null or stash.size() >= STASH_CAPACITY:
+		return false
+	stash.append(item)
+	_save_stash()
+	return true
+
+
+func stash_take(index: int) -> Item:
+	if index < 0 or index >= stash.size():
+		return null
+	var item := stash[index]
+	stash.remove_at(index)
+	_save_stash()
+	return item
 
 
 func has_save() -> bool:

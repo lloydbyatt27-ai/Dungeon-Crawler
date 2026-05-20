@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
 [ext_resource type="Script" path="res://scripts/world/IsometricCamera.gd" id="2_camera"]
@@ -13,6 +13,8 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/ForgeUI.tscn" id="11_forgeui"]
 [ext_resource type="PackedScene" path="res://scenes/ui/PauseMenu.tscn" id="12_pause"]
 [ext_resource type="PackedScene" path="res://scenes/world/EndlessPortal.tscn" id="13_endless"]
+[ext_resource type="PackedScene" path="res://scenes/world/Stash.tscn" id="14_stash"]
+[ext_resource type="PackedScene" path="res://scenes/ui/StashUI.tscn" id="15_stashui"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
 size = Vector2(28, 28)
@@ -119,7 +121,10 @@ merchant_name = "Weaponsmith"
 item_filter = ["WEAPON"]
 
 [node name="Forge" parent="." instance=ExtResource("10_forge")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 8)
+
+[node name="Stash" parent="." instance=ExtResource("14_stash")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 8)
 
 [node name="Portal" parent="." instance=ExtResource("9_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, -8)
@@ -175,6 +180,8 @@ damage_number_scene = ExtResource("5_dmgnum")
 [node name="VendorUI" parent="." instance=ExtResource("7_vendor")]
 
 [node name="ForgeUI" parent="." instance=ExtResource("11_forgeui")]
+
+[node name="StashUI" parent="." instance=ExtResource("15_stashui")]
 
 [node name="PauseMenu" parent="." instance=ExtResource("12_pause")]
 show_quit_to_hub = false

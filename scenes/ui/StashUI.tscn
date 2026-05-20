@@ -1,0 +1,115 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/StashUI.gd" id="1_stash"]
+
+[node name="StashUI" type="CanvasLayer"]
+layer = 5
+script = ExtResource("1_stash")
+
+[node name="Root" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Dim" type="ColorRect" parent="Root"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.55)
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Root"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -380.0
+offset_top = -300.0
+offset_right = 380.0
+offset_bottom = 300.0
+
+[node name="Margin" type="MarginContainer" parent="Root/Panel"]
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="VBox" type="VBoxContainer" parent="Root/Panel/Margin"]
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Root/Panel/Margin/VBox"]
+text = "Vault"
+theme_override_font_sizes/font_size = 26
+theme_override_colors/font_color = Color(0.95, 0.8, 0.45, 1)
+
+[node name="Subtitle" type="Label" parent="Root/Panel/Margin/VBox"]
+text = "Shared across all characters."
+theme_override_font_sizes/font_size = 12
+modulate = Color(0.7, 0.7, 0.75, 1)
+
+[node name="Columns" type="HBoxContainer" parent="Root/Panel/Margin/VBox"]
+theme_override_constants/separation = 16
+
+[node name="BackpackCol" type="VBoxContainer" parent="Root/Panel/Margin/VBox/Columns"]
+size_flags_horizontal = 3
+
+[node name="Header" type="HBoxContainer" parent="Root/Panel/Margin/VBox/Columns/BackpackCol"]
+
+[node name="Title" type="Label" parent="Root/Panel/Margin/VBox/Columns/BackpackCol/Header"]
+text = "Backpack"
+theme_override_font_sizes/font_size = 16
+size_flags_horizontal = 3
+modulate = Color(0.7, 0.85, 0.95, 1)
+
+[node name="CountLabel" type="Label" parent="Root/Panel/Margin/VBox/Columns/BackpackCol/Header"]
+text = "0 / 24"
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.65, 0.65, 0.7, 1)
+
+[node name="Grid" type="VBoxContainer" parent="Root/Panel/Margin/VBox/Columns/BackpackCol"]
+theme_override_constants/separation = 4
+
+[node name="StashCol" type="VBoxContainer" parent="Root/Panel/Margin/VBox/Columns"]
+size_flags_horizontal = 3
+
+[node name="Header" type="HBoxContainer" parent="Root/Panel/Margin/VBox/Columns/StashCol"]
+
+[node name="Title" type="Label" parent="Root/Panel/Margin/VBox/Columns/StashCol/Header"]
+text = "Stash"
+theme_override_font_sizes/font_size = 16
+size_flags_horizontal = 3
+modulate = Color(0.95, 0.8, 0.45, 1)
+
+[node name="CountLabel" type="Label" parent="Root/Panel/Margin/VBox/Columns/StashCol/Header"]
+text = "0 / 50"
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.65, 0.65, 0.7, 1)
+
+[node name="Grid" type="VBoxContainer" parent="Root/Panel/Margin/VBox/Columns/StashCol"]
+theme_override_constants/separation = 4
+
+[node name="CloseButton" type="Button" parent="Root/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 36)
+text = "Close (Esc)"
+
+[node name="Tooltip" type="PanelContainer" parent="Root"]
+visible = false
+offset_left = 100.0
+offset_top = 100.0
+offset_right = 360.0
+offset_bottom = 280.0
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="Root/Tooltip"]
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Label" type="RichTextLabel" parent="Root/Tooltip/Margin"]
+custom_minimum_size = Vector2(220, 140)
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
