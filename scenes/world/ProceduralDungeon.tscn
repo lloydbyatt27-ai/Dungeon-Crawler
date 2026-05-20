@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
 [ext_resource type="Script" path="res://scripts/world/IsometricCamera.gd" id="2_camera"]
@@ -14,6 +14,7 @@
 [ext_resource type="PackedScene" path="res://scenes/enemies/GoblinArcher.tscn" id="12_archer"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/SkeletonMage.tscn" id="13_mage"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/OrcBrute.tscn" id="14_brute"]
+[ext_resource type="PackedScene" path="res://scenes/world/Shrine.tscn" id="15_shrine"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
 albedo_color = Color(0.22, 0.21, 0.20, 1)
@@ -37,6 +38,7 @@ skeleton_mage_scene = ExtResource("13_mage")
 orc_brute_scene = ExtResource("14_brute")
 goblin_chief_scene = ExtResource("5_chief")
 chest_scene = ExtResource("6_chest")
+shrine_scene = ExtResource("15_shrine")
 wall_material = SubResource("StandardMaterial3D_wall")
 floor_material = SubResource("StandardMaterial3D_floor")
 

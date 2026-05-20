@@ -1,12 +1,9 @@
 class_name DungeonGenerator
 extends Node3D
-## Procedurally lays out a linear sequence of rooms along -Z and populates
-## them with enemies, chests, and a boss. Each generation pulls from the
-## ROOM_SPECS table, picks 3-5 mid-rooms from a weighted pool, and bookends
-## with an entry and boss room.
-##
-## Geometry is built as StaticBody3D children of this node so the scene
-## graph stays clean — clearing this node clears the whole dungeon.
+## Procedural dungeon generator. Builds a linear main chain (entry → 3-5 mid
+## rooms → boss) and optionally attaches side branches (shrine / extra
+## treasure / mini-boss) to mid-rooms. Each room declares which of its four
+## sides have a doorway; walls are built segment-by-segment with gaps.
 
 @export var goblin_scene: PackedScene
 @export var goblin_archer_scene: PackedScene
@@ -14,63 +11,55 @@ extends Node3D
 @export var orc_brute_scene: PackedScene
 @export var goblin_chief_scene: PackedScene
 @export var chest_scene: PackedScene
+@export var shrine_scene: PackedScene
 @export var wall_material: Material
 @export var floor_material: Material
 @export_group("Layout")
-@export var seed: int = 0           # 0 = randomize each run
+@export var seed: int = 0
 @export var min_mid_rooms: int = 3
 @export var max_mid_rooms: int = 5
 @export var door_width: float = 6.0
 @export var wall_height: float = 3.0
 @export var wall_thickness: float = 1.0
+@export_range(0.0, 1.0) var side_branch_chance: float = 0.45
 
 const ROOM_SPECS: Dictionary = {
-	"entry": {
-		"size": Vector2(20, 16),
-		"enemies": 0,
-		"is_entry": true,
-		"light_color": Color(1.0, 0.85, 0.55),
-		"light_energy": 1.2,
-	},
-	"combat_small": {
-		"size": Vector2(20, 16),
-		"enemies": 2,
-		"light_color": Color(1.0, 0.85, 0.55),
-		"light_energy": 0.9,
-	},
-	"combat_large": {
-		"size": Vector2(26, 22),
-		"enemies": 4,
-		"light_color": Color(1.0, 0.85, 0.55),
-		"light_energy": 1.0,
-	},
-	"treasure": {
-		"size": Vector2(16, 14),
-		"enemies": 1,
-		"chest": true,
-		"light_color": Color(1.0, 0.85, 0.4),
-		"light_energy": 1.4,
-	},
-	"boss": {
-		"size": Vector2(30, 26),
-		"boss": true,
-		"light_color": Color(1.0, 0.4, 0.2),
-		"light_energy": 1.6,
-	},
+	"entry":        {"size": Vector2(20, 16), "enemies": 0, "is_entry": true,
+	                  "light_color": Color(1.0, 0.85, 0.55), "light_energy": 1.2},
+	"combat_small": {"size": Vector2(20, 16), "enemies": 2,
+	                  "light_color": Color(1.0, 0.85, 0.55), "light_energy": 0.9},
+	"combat_large": {"size": Vector2(26, 22), "enemies": 4,
+	                  "light_color": Color(1.0, 0.85, 0.55), "light_energy": 1.0},
+	"treasure":     {"size": Vector2(16, 14), "enemies": 1, "chest": true,
+	                  "light_color": Color(1.0, 0.85, 0.4),  "light_energy": 1.4},
+	"boss":         {"size": Vector2(30, 26), "boss": true,
+	                  "light_color": Color(1.0, 0.4, 0.2),   "light_energy": 1.6},
+	# Side-branch types
+	"shrine_room":     {"size": Vector2(14, 12), "enemies": 0, "shrine": true,
+	                     "light_color": Color(0.7, 1.0, 0.85), "light_energy": 1.5},
+	"extra_treasure":  {"size": Vector2(14, 12), "enemies": 1, "chest": true,
+	                     "light_color": Color(1.0, 0.85, 0.4),  "light_energy": 1.5},
+	"mini_boss":       {"size": Vector2(20, 16), "enemies": 0, "mini_boss": true,
+	                     "light_color": Color(1.0, 0.45, 0.30), "light_energy": 1.3},
 }
 
-# Weighted pool for mid-room selection
 const MID_POOL: Array = [
 	{"id": "combat_small", "weight": 45},
 	{"id": "combat_large", "weight": 35},
 	{"id": "treasure",     "weight": 20},
 ]
 
+const SIDE_POOL: Array = [
+	{"id": "shrine_room",    "weight": 35},
+	{"id": "extra_treasure", "weight": 40},
+	{"id": "mini_boss",      "weight": 25},
+]
+
 signal generation_complete(player_spawn: Vector3)
 
 var _rng: RandomNumberGenerator
 var _player_spawn: Vector3 = Vector3.ZERO
-var generated_rooms: Array = []  # public — read by the MiniMap
+var generated_rooms: Array = []
 
 
 func _ready() -> void:
@@ -81,78 +70,114 @@ func _ready() -> void:
 	else:
 		_rng.randomize()
 	_generate()
-	# Defer entity placement one frame so all child _ready calls (player,
-	# camera, HUD) have run before we move things around.
 	await get_tree().process_frame
 	_emit_complete()
 
 
 func _generate() -> void:
-	# Build the room sequence
+	_layout_main_chain()
+	_layout_side_branches()
+	# Build geometry for everything
+	for room in generated_rooms:
+		_build_room(room)
+	# Populate
+	for room in generated_rooms:
+		_populate_room(room)
+
+
+# --- Layout phase --------------------------------------------------
+
+func _layout_main_chain() -> void:
 	var sequence: Array[String] = ["entry"]
 	var mid_count: int = _rng.randi_range(min_mid_rooms, max_mid_rooms)
 	for _i in range(mid_count):
-		sequence.append(_pick_mid_room())
+		sequence.append(_pick_from_pool(MID_POOL))
 	sequence.append("boss")
 
-	# Lay out rooms along -Z. z_cursor is the boundary between the previous
-	# room and the next — each new room extends from z_cursor to z_cursor - size.y.
 	var z_cursor: float = 0.0
 	for i in range(sequence.size()):
-		var spec: Dictionary = ROOM_SPECS[sequence[i]].duplicate()
-		# Slight size variation (each axis ±2 units) so rooms feel distinct
-		var size: Vector2 = spec.size + Vector2(
-			_rng.randi_range(-2, 2), _rng.randi_range(-1, 1)
-		)
-		# Don't shrink below the door width + margin
+		var type_id: String = sequence[i]
+		var spec: Dictionary = ROOM_SPECS[type_id]
+		var base_size: Vector2 = spec.size
+		var size: Vector2 = base_size + Vector2(_rng.randi_range(-2, 2), _rng.randi_range(-1, 1))
 		size.x = max(size.x, door_width + 6.0)
 		size.y = max(size.y, 10.0)
-		spec.size = size
-
-		var center_z: float = z_cursor - size.y * 0.5
-		var center: Vector3 = Vector3(0, 0, center_z)
-
-		_build_room(center, size, spec)
-		_populate_room(center, size, spec)
-		if spec.get("is_entry", false):
-			_player_spawn = Vector3(0, 1.0, center_z + size.y * 0.30)
-
-		# Build the dividing wall between this room and the next one
+		var center := Vector3(0, 0, z_cursor - size.y * 0.5)
+		var doors: Array = []
+		if i > 0:
+			doors.append("north")
 		if i < sequence.size() - 1:
-			_build_divider(z_cursor - size.y, size.x)
-		# Bookend walls (no doorway): north wall of entry, south wall of boss
-		if i == 0:
-			_build_wall_box(Vector3(0, wall_height * 0.5, z_cursor), Vector3(size.x, wall_height, wall_thickness))
-		if i == sequence.size() - 1:
-			_build_wall_box(Vector3(0, wall_height * 0.5, z_cursor - size.y), Vector3(size.x, wall_height, wall_thickness))
-
-		generated_rooms.append({"type": sequence[i], "center": center, "size": size})
+			doors.append("south")
+		var room := {
+			"type": type_id,
+			"center": center,
+			"size": size,
+			"doors": doors,
+			"is_main": true,
+		}
+		generated_rooms.append(room)
+		if spec.get("is_entry", false):
+			_player_spawn = Vector3(0, 1.0, center.z + size.y * 0.30)
 		z_cursor -= size.y
 
 
-func _pick_mid_room() -> String:
+func _layout_side_branches() -> void:
+	# Copy because we'll be appending to generated_rooms while iterating
+	var candidates: Array = []
+	for r in generated_rooms:
+		if r.get("is_main", false) and r.type in ["combat_small", "combat_large", "treasure"]:
+			candidates.append(r)
+	for parent in candidates:
+		if _rng.randf() >= side_branch_chance:
+			continue
+		var side_type: String = _pick_from_pool(SIDE_POOL)
+		var spec: Dictionary = ROOM_SPECS[side_type]
+		var base_size: Vector2 = spec.size
+		var size: Vector2 = base_size + Vector2(_rng.randi_range(-1, 1), _rng.randi_range(-1, 1))
+		size.x = max(size.x, door_width + 4.0)
+		size.y = max(size.y, 8.0)
+		var east_side: bool = _rng.randf() < 0.5
+		var dx: float = (parent.size.x * 0.5 + size.x * 0.5) * (1.0 if east_side else -1.0)
+		var center: Vector3 = parent.center + Vector3(dx, 0.0, 0.0)
+		var doors: Array = ["west" if east_side else "east"]
+		# Open the parent's wall on that side
+		parent.doors.append("east" if east_side else "west")
+		generated_rooms.append({
+			"type": side_type,
+			"center": center,
+			"size": size,
+			"doors": doors,
+			"is_main": false,
+		})
+
+
+func _pick_from_pool(pool: Array) -> String:
 	var total := 0
-	for entry in MID_POOL:
+	for entry in pool:
 		total += int(entry.weight)
 	var roll := _rng.randi_range(0, total - 1)
 	var accum := 0
-	for entry in MID_POOL:
+	for entry in pool:
 		accum += int(entry.weight)
 		if roll < accum:
 			return entry.id
-	return "combat_small"
+	return pool[0].id
 
 
-# --- Geometry builders ---------------------------------------------
+# --- Geometry phase ------------------------------------------------
 
-func _build_room(center: Vector3, size: Vector2, spec: Dictionary) -> void:
+func _build_room(room: Dictionary) -> void:
+	var center: Vector3 = room.center
+	var size: Vector2 = room.size
+	var doors: Array = room.doors
+	var spec: Dictionary = ROOM_SPECS.get(room.type, {})
+
 	# Floor
 	var floor_body := StaticBody3D.new()
 	floor_body.collision_layer = 1
 	floor_body.collision_mask = 0
 	add_child(floor_body)
 	floor_body.global_position = center
-
 	var floor_mesh := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
 	pm.size = size
@@ -162,7 +187,6 @@ func _build_room(center: Vector3, size: Vector2, spec: Dictionary) -> void:
 	if floor_material:
 		floor_mesh.set_surface_override_material(0, floor_material)
 	floor_body.add_child(floor_mesh)
-
 	var floor_shape := CollisionShape3D.new()
 	var floor_box := BoxShape3D.new()
 	floor_box.size = Vector3(size.x, 0.2, size.y)
@@ -170,17 +194,13 @@ func _build_room(center: Vector3, size: Vector2, spec: Dictionary) -> void:
 	floor_shape.position = Vector3(0, -0.1, 0)
 	floor_body.add_child(floor_shape)
 
-	# East and West walls
-	_build_wall_box(
-		center + Vector3(size.x * 0.5, wall_height * 0.5, 0),
-		Vector3(wall_thickness, wall_height, size.y)
-	)
-	_build_wall_box(
-		center + Vector3(-size.x * 0.5, wall_height * 0.5, 0),
-		Vector3(wall_thickness, wall_height, size.y)
-	)
+	# Walls — one per side, gapped if the side has a doorway
+	_build_wall_side(center, size, "north", "north" in doors)
+	_build_wall_side(center, size, "south", "south" in doors)
+	_build_wall_side(center, size, "east",  "east"  in doors)
+	_build_wall_side(center, size, "west",  "west"  in doors)
 
-	# Room light
+	# Light
 	var light := OmniLight3D.new()
 	light.position = center + Vector3(0, 3.5, 0)
 	light.light_color = spec.get("light_color", Color(1, 0.85, 0.55))
@@ -189,13 +209,69 @@ func _build_room(center: Vector3, size: Vector2, spec: Dictionary) -> void:
 	add_child(light)
 
 
+func _build_wall_side(center: Vector3, size: Vector2, side: String, has_door: bool) -> void:
+	var hy: float = wall_height * 0.5
+	match side:
+		"north":
+			var z: float = center.z - size.y * 0.5
+			if has_door:
+				_build_horiz_split(z, center.x, size.x, hy)
+			else:
+				_build_wall_box(Vector3(center.x, hy, z), Vector3(size.x, wall_height, wall_thickness))
+		"south":
+			var z2: float = center.z + size.y * 0.5
+			if has_door:
+				_build_horiz_split(z2, center.x, size.x, hy)
+			else:
+				_build_wall_box(Vector3(center.x, hy, z2), Vector3(size.x, wall_height, wall_thickness))
+		"east":
+			var x: float = center.x + size.x * 0.5
+			if has_door:
+				_build_vert_split(x, center.z, size.y, hy)
+			else:
+				_build_wall_box(Vector3(x, hy, center.z), Vector3(wall_thickness, wall_height, size.y))
+		"west":
+			var x2: float = center.x - size.x * 0.5
+			if has_door:
+				_build_vert_split(x2, center.z, size.y, hy)
+			else:
+				_build_wall_box(Vector3(x2, hy, center.z), Vector3(wall_thickness, wall_height, size.y))
+
+
+func _build_horiz_split(z: float, x_center: float, length: float, hy: float) -> void:
+	var seg: float = (length - door_width) * 0.5
+	if seg <= 0.1:
+		return
+	_build_wall_box(
+		Vector3(x_center - door_width * 0.5 - seg * 0.5, hy, z),
+		Vector3(seg, wall_height, wall_thickness)
+	)
+	_build_wall_box(
+		Vector3(x_center + door_width * 0.5 + seg * 0.5, hy, z),
+		Vector3(seg, wall_height, wall_thickness)
+	)
+
+
+func _build_vert_split(x: float, z_center: float, length: float, hy: float) -> void:
+	var seg: float = (length - door_width) * 0.5
+	if seg <= 0.1:
+		return
+	_build_wall_box(
+		Vector3(x, hy, z_center - door_width * 0.5 - seg * 0.5),
+		Vector3(wall_thickness, wall_height, seg)
+	)
+	_build_wall_box(
+		Vector3(x, hy, z_center + door_width * 0.5 + seg * 0.5),
+		Vector3(wall_thickness, wall_height, seg)
+	)
+
+
 func _build_wall_box(center: Vector3, size: Vector3) -> void:
 	var body := StaticBody3D.new()
 	body.collision_layer = 1
 	body.collision_mask = 0
 	add_child(body)
 	body.global_position = center
-
 	var mesh := MeshInstance3D.new()
 	var bm := BoxMesh.new()
 	bm.size = size
@@ -203,7 +279,6 @@ func _build_wall_box(center: Vector3, size: Vector3) -> void:
 	if wall_material:
 		mesh.set_surface_override_material(0, wall_material)
 	body.add_child(mesh)
-
 	var shape := CollisionShape3D.new()
 	var bs := BoxShape3D.new()
 	bs.size = size
@@ -211,27 +286,14 @@ func _build_wall_box(center: Vector3, size: Vector3) -> void:
 	body.add_child(shape)
 
 
-func _build_divider(z: float, room_width: float) -> void:
-	# Internal wall at z with a centered doorway gap of door_width
-	var seg_length: float = (room_width - door_width) * 0.5
-	if seg_length <= 0.1:
-		return
-	# Left segment
-	_build_wall_box(
-		Vector3(-(door_width * 0.5 + seg_length * 0.5), wall_height * 0.5, z),
-		Vector3(seg_length, wall_height, wall_thickness)
-	)
-	# Right segment
-	_build_wall_box(
-		Vector3(door_width * 0.5 + seg_length * 0.5, wall_height * 0.5, z),
-		Vector3(seg_length, wall_height, wall_thickness)
-	)
+# --- Population ----------------------------------------------------
 
+func _populate_room(room: Dictionary) -> void:
+	var center: Vector3 = room.center
+	var size: Vector2 = room.size
+	var spec: Dictionary = ROOM_SPECS.get(room.type, {})
 
-# --- Entity population ----------------------------------------------
-
-func _populate_room(center: Vector3, size: Vector2, spec: Dictionary) -> void:
-	# Enemies — rolled from a weighted pool so rooms mix archetypes
+	# Regular enemies
 	var n_enemies: int = spec.get("enemies", 0)
 	for j in range(n_enemies):
 		var enemy_scene := _pick_enemy_scene()
@@ -249,6 +311,18 @@ func _populate_room(center: Vector3, size: Vector2, spec: Dictionary) -> void:
 		var boss := goblin_chief_scene.instantiate()
 		add_child(boss)
 		boss.global_position = center + Vector3(0, 0, -size.y * 0.25)
+	# Mini-boss (side branch) — beefier Orc Brute
+	if spec.get("mini_boss", false) and orc_brute_scene:
+		var brute := orc_brute_scene.instantiate()
+		add_child(brute)
+		brute.global_position = center
+		# Make him bigger / scarier than a regular brute
+		if "max_health" in brute.get_node_or_null("Health"):
+			brute.get_node("Health").max_health = 220.0
+		if "attack_damage" in brute:
+			brute.attack_damage = 26.0
+		if "xp_value" in brute:
+			brute.xp_value = 120
 	# Chest
 	if spec.get("chest", false) and chest_scene:
 		var chest := chest_scene.instantiate()
@@ -258,9 +332,13 @@ func _populate_room(center: Vector3, size: Vector2, spec: Dictionary) -> void:
 			0.0,
 			_rng.randf_range(-size.y * 0.15, size.y * 0.15)
 		)
+	# Shrine
+	if spec.get("shrine", false) and shrine_scene:
+		var shrine := shrine_scene.instantiate()
+		add_child(shrine)
+		shrine.global_position = center
 
 
-# Weighted pool of enemy scenes for combat rooms.
 func _pick_enemy_scene() -> PackedScene:
 	var pool: Array = []
 	if goblin_scene:        pool.append({"scene": goblin_scene,        "weight": 50})
@@ -281,10 +359,9 @@ func _pick_enemy_scene() -> PackedScene:
 	return pool[0].scene
 
 
-# --- Finalize -------------------------------------------------------
+# --- Finalize ------------------------------------------------------
 
 func _emit_complete() -> void:
-	# Move the player to the entry spawn point
 	var players := get_tree().get_nodes_in_group("player")
 	if not players.is_empty():
 		var p := players[0] as Node3D
