@@ -89,7 +89,9 @@ const RARITY_AFFIXES: Dictionary = {
 ## Roll a random item: pick a COMMON base from the pool, then layer affixes
 ## based on the rolled rarity. Common items stay vanilla; uncommon adds a
 ## prefix; rare gets a prefix + suffix; epic gets two prefixes + a suffix.
-static func generate_random_item(item_level: int = 1) -> Item:
+## If type_filter is non-empty, only bases whose ItemType.keys() match are
+## eligible (e.g. ["WEAPON"] for a weaponsmith).
+static func generate_random_item(item_level: int = 1, type_filter: Array = []) -> Item:
 	var rarity_id: String = _pick_rarity()
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
@@ -100,8 +102,11 @@ static func generate_random_item(item_level: int = 1) -> Item:
 	for t in ITEM_TEMPLATES:
 		# Use only Common bases for rolled rarities; Uncommon/Rare templates
 		# are reserved for boss-tier hand-tuned drops via create_by_id.
-		if t.rarity == "COMMON":
-			base_pool.append(t)
+		if t.rarity != "COMMON":
+			continue
+		if not type_filter.is_empty() and not (t.type in type_filter):
+			continue
+		base_pool.append(t)
 	if base_pool.is_empty():
 		return null
 	var template: Dictionary = base_pool[rng.randi() % base_pool.size()]

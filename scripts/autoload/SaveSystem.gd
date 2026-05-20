@@ -121,6 +121,27 @@ func delete_save() -> void:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
 
 
+## Build an Item from a save entry: either a plain id string (legacy) or
+## a dict with {id, upgrade}. Re-applies upgrade() upgrade_level times so
+## the item's stat scaling matches.
+func _item_from_save_entry(entry) -> Item:
+	var id: String = ""
+	var upgrades: int = 0
+	if entry is Dictionary:
+		id = String(entry.get("id", ""))
+		upgrades = int(entry.get("upgrade", 0))
+	elif entry is String:
+		id = entry
+	if id == "":
+		return null
+	var item := ItemDatabase.create_by_id(id)
+	if item == null:
+		return null
+	for _i in range(upgrades):
+		item.upgrade()
+	return item
+
+
 # --- Serialization --------------------------------------------------
 
 func _serialize_player(player: PlayerController) -> Dictionary:
@@ -153,11 +174,15 @@ func _serialize_player(player: PlayerController) -> Dictionary:
 		"dungeons_completed": GameState.run_stats.get("dungeons_completed", 0),
 	}
 	if inv:
+		# Save equipped items with their upgrade level so it survives reload
 		for slot in Inventory.SLOTS:
 			var item: Item = inv.equipment[slot]
-			data.equipment[slot] = item.item_id if item else ""
+			if item:
+				data.equipment[slot] = {"id": item.item_id, "upgrade": item.upgrade_level}
+			else:
+				data.equipment[slot] = ""
 		for it in inv.items:
-			data.inventory.append(it.item_id)
+			data.inventory.append({"id": it.item_id, "upgrade": it.upgrade_level})
 	return data
 
 
@@ -186,19 +211,17 @@ func _deserialize_into_player(player: PlayerController, data: Dictionary) -> voi
 		inv.items.clear()
 		for slot in Inventory.SLOTS:
 			inv.equipment[slot] = null
-		# Inventory items
-		for item_id in data.get("inventory", []):
-			var item := ItemDatabase.create_by_id(item_id)
+		# Inventory items — entries may be plain strings (old saves) or dicts
+		for entry in data.get("inventory", []):
+			var item := _item_from_save_entry(entry)
 			if item:
 				inv.items.append(item)
 		# Equipped items
 		var eq: Dictionary = data.get("equipment", {})
 		for slot in Inventory.SLOTS:
-			var item_id: String = eq.get(slot, "")
-			if item_id != "":
-				var item := ItemDatabase.create_by_id(item_id)
-				if item:
-					inv.equipment[slot] = item
+			var item2 := _item_from_save_entry(eq.get(slot, ""))
+			if item2:
+				inv.equipment[slot] = item2
 		inv._refresh_stats()
 		inv.items_changed.emit()
 

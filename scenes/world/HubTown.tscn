@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
 [ext_resource type="Script" path="res://scripts/world/IsometricCamera.gd" id="2_camera"]
@@ -9,6 +9,8 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/VendorUI.tscn" id="7_vendor"]
 [ext_resource type="PackedScene" path="res://scenes/world/Merchant.tscn" id="8_merchant"]
 [ext_resource type="PackedScene" path="res://scenes/world/Portal.tscn" id="9_portal"]
+[ext_resource type="PackedScene" path="res://scenes/world/Forge.tscn" id="10_forge"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ForgeUI.tscn" id="11_forgeui"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
 size = Vector2(28, 28)
@@ -104,8 +106,18 @@ surface_material_override/0 = SubResource("StandardMaterial3D_wall")
 transform = Transform3D(1, 0, 0, 0, 3, 0, 0, 0, 28, -14, 1.5, 0)
 shape = SubResource("BoxShape3D_floor")
 
-[node name="Merchant" parent="." instance=ExtResource("8_merchant")]
+[node name="Armorer" parent="." instance=ExtResource("8_merchant")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, 0)
+merchant_name = "Armorer"
+item_filter = ["ARMOR", "OFFHAND"]
+
+[node name="Weaponsmith" parent="." instance=ExtResource("8_merchant")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, 0)
+merchant_name = "Weaponsmith"
+item_filter = ["WEAPON"]
+
+[node name="Forge" parent="." instance=ExtResource("10_forge")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
 
 [node name="Portal" parent="." instance=ExtResource("9_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -8)
@@ -125,10 +137,22 @@ light_color = Color(1, 0.8, 0.55, 1)
 light_energy = 1.4
 omni_range = 22.0
 
-[node name="MerchantLight" type="OmniLight3D" parent="Lighting"]
+[node name="ArmorerLight" type="OmniLight3D" parent="Lighting"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 3, 0)
 light_color = Color(1, 0.85, 0.6, 1)
 light_energy = 1.0
+omni_range = 8.0
+
+[node name="WeaponsmithLight" type="OmniLight3D" parent="Lighting"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 3, 0)
+light_color = Color(1, 0.85, 0.6, 1)
+light_energy = 1.0
+omni_range = 8.0
+
+[node name="ForgeLight" type="OmniLight3D" parent="Lighting"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 8)
+light_color = Color(1, 0.55, 0.2, 1)
+light_energy = 1.4
 omni_range = 8.0
 
 [node name="IsometricCamera" type="Camera3D" parent="."]
@@ -144,3 +168,5 @@ damage_number_scene = ExtResource("5_dmgnum")
 [node name="InventoryUI" parent="." instance=ExtResource("6_invui")]
 
 [node name="VendorUI" parent="." instance=ExtResource("7_vendor")]
+
+[node name="ForgeUI" parent="." instance=ExtResource("11_forgeui")]

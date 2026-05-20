@@ -28,6 +28,7 @@ enum Rarity { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY }
 @export var crit_damage_bonus: float = 0.0
 
 @export var sell_value: int = 1
+@export var upgrade_level: int = 0   # 0 = base; +1, +2, ... from forge upgrades
 
 
 func get_slot() -> String:
@@ -54,6 +55,41 @@ func get_rarity_name() -> String:
 
 func type_name() -> String:
 	return ItemType.keys()[item_type].capitalize()
+
+
+## Returns the display name with the upgrade-level suffix appended.
+func display_with_upgrade() -> String:
+	if upgrade_level <= 0:
+		return display_name
+	return "%s +%d" % [display_name, upgrade_level]
+
+
+## Apply a 25 percent increase to all stat bonuses and bump upgrade_level.
+## Caps at +5.
+func upgrade() -> bool:
+	if upgrade_level >= 5:
+		return false
+	upgrade_level += 1
+	var f := 0.25
+	weapon_damage *= 1.0 + f
+	armor *= 1.0 + f
+	max_hp_bonus *= 1.0 + f
+	max_mana_bonus *= 1.0 + f
+	strength_bonus = int(round(strength_bonus * (1.0 + f)))
+	agility_bonus = int(round(agility_bonus * (1.0 + f)))
+	intelligence_bonus = int(round(intelligence_bonus * (1.0 + f)))
+	stamina_bonus = int(round(stamina_bonus * (1.0 + f)))
+	crit_chance_bonus *= 1.0 + f
+	crit_damage_bonus *= 1.0 + f
+	sell_value = int(sell_value * (1.0 + f))
+	return true
+
+
+## Soul-shard cost to upgrade from current level to current+1.
+func upgrade_cost() -> int:
+	if upgrade_level >= 5:
+		return -1
+	return (upgrade_level + 1) * 5 * (int(rarity) + 1)
 
 
 func tooltip_text() -> String:

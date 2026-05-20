@@ -5,6 +5,7 @@ extends StaticBody3D
 @export var merchant_name: String = "Armorer"
 @export var stock_size: int = 8
 @export var item_level: int = 1
+@export var item_filter: Array = []  # e.g. ["WEAPON"] or ["ARMOR", "OFFHAND"]
 
 @onready var prompt_label: Label3D = $PromptLabel
 @onready var name_label: Label3D = $NameLabel
@@ -27,7 +28,7 @@ func _ready() -> void:
 func refresh_stock() -> void:
 	stock.clear()
 	for _i in range(stock_size):
-		var item := ItemDatabase.generate_random_item(item_level)
+		var item := ItemDatabase.generate_random_item(item_level, item_filter)
 		if item:
 			stock.append(item)
 
