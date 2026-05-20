@@ -15,6 +15,7 @@ signal player_xp_gained(amount: int)
 signal player_gold_changed(new_total: int)
 signal player_essence_changed(new_value: float)
 signal player_shapeshifted(form_id: String, is_active: bool)
+signal player_stats_changed
 
 # --- Loot & items ---
 signal item_dropped(item, position: Vector3)

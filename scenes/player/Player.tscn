@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/combat/Health.gd" id="2_health"]
@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://scenes/skills/EarthquakeEffect.tscn" id="7_earthquake"]
 [ext_resource type="PackedScene" path="res://scenes/skills/FrostbiteEffect.tscn" id="8_frostbite"]
 [ext_resource type="PackedScene" path="res://scenes/skills/WarcryAura.tscn" id="9_warcry"]
+[ext_resource type="Script" path="res://scripts/systems/Inventory.gd" id="10_inv"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.4
@@ -103,3 +104,6 @@ script = ExtResource("6_skills")
 earthquake_scene = ExtResource("7_earthquake")
 frostbite_scene = ExtResource("8_frostbite")
 warcry_aura_scene = ExtResource("9_warcry")
+
+[node name="Inventory" type="Node" parent="."]
+script = ExtResource("10_inv")

@@ -13,8 +13,11 @@ extends CharacterBody3D
 # Stats
 @export_group("Reward")
 @export var xp_value: int = 30
-@export var gold_min: int = 2
-@export var gold_max: int = 8
+@export var gold_min: int = 3
+@export var gold_max: int = 9
+@export var item_drop_chance: float = 0.20
+@export var gold_pickup_scene: PackedScene
+@export var item_pickup_scene: PackedScene
 @export_group("Combat")
 @export var attack_damage: float = 12.0
 @export var attack_range: float = 2.0
@@ -214,9 +217,29 @@ func _on_died() -> void:
 	attack_hitbox.deactivate()
 	hurtbox.monitorable = false
 	telegraph_mesh.visible = false
+	_drop_loot()
 	EventBus.enemy_died.emit(self, global_position)
 	# Fall over and fade out
 	_die_animation()
+
+
+func _drop_loot() -> void:
+	# Gold
+	if gold_pickup_scene:
+		var amount := randi_range(gold_min, gold_max)
+		if amount > 0:
+			var pile := gold_pickup_scene.instantiate()
+			get_tree().current_scene.add_child(pile)
+			pile.amount = amount
+			pile.global_position = global_position + Vector3(0, 0.5, 0)
+	# Item
+	if item_pickup_scene and randf() < item_drop_chance:
+		var item := ItemDatabase.generate_random_item(1)
+		if item:
+			var pickup := item_pickup_scene.instantiate()
+			get_tree().current_scene.add_child(pickup)
+			pickup.global_position = global_position + Vector3(0, 0.6, 0)
+			pickup.setup(item)
 
 
 func _die_animation() -> void:

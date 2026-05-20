@@ -55,6 +55,7 @@ var current_mana: float = 0.0
 @onready var melee_hitbox: HitBox = $MeleeHitBox
 @onready var body_mesh: MeshInstance3D = $Body
 @onready var skill_system: SkillSystem = $SkillSystem
+@onready var inventory: Inventory = $Inventory
 
 # Visuals
 var _body_default_material: Material
@@ -269,12 +270,18 @@ func _enter_attack_phase(phase: AttackPhase) -> void:
 
 
 func _compute_melee_damage(weapon_base: float) -> float:
+	# Base = unarmed swing damage from LIGHT_PHASES + equipped weapon damage.
 	var dmg := weapon_base
 	if stats:
+		dmg += stats.bonus_weapon_damage
 		dmg *= stats.melee_damage_mult()
 	if skill_system:
 		dmg *= (1.0 + skill_system.damage_buff_amount)
 	return dmg
+
+
+func get_inventory() -> Inventory:
+	return inventory
 
 
 func _roll_crit() -> bool:

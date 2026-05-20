@@ -10,6 +10,7 @@ extends CanvasLayer
 
 @onready var combo_label: Label = $Root/ComboLabel
 @onready var state_label: Label = $Root/StateLabel
+@onready var gold_label: Label = $Root/GoldLabel
 @onready var death_overlay: ColorRect = $Root/DeathOverlay
 @onready var skill_bar: HBoxContainer = $Root/SkillBar
 
@@ -26,6 +27,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_bind_to_player()
 	_build_skill_slots()
+	EventBus.player_gold_changed.connect(_on_gold_changed)
 
 
 func _bind_to_player() -> void:
@@ -158,6 +160,10 @@ func _on_player_died() -> void:
 
 func _reload_scene() -> void:
 	get_tree().reload_current_scene()
+
+
+func _on_gold_changed(new_total: int) -> void:
+	gold_label.text = "Gold: %d" % new_total
 
 
 func _process(_delta: float) -> void:

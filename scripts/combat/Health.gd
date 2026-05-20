@@ -10,6 +10,7 @@ signal died
 
 @export var max_health: float = 100.0
 @export var invulnerable: bool = false
+@export_range(0.0, 0.95) var damage_reduction: float = 0.0
 
 var current_health: float = 0.0
 var is_dead: bool = false
@@ -23,7 +24,11 @@ func _ready() -> void:
 func take_damage(info: DamageInfo) -> void:
 	if is_dead or invulnerable or info.amount <= 0:
 		return
-	current_health = max(0.0, current_health - info.amount)
+	# Apply damage reduction (from armor)
+	var actual: float = info.amount * (1.0 - damage_reduction)
+	# Mutate info so downstream listeners (damage numbers) see the real value
+	info.amount = actual
+	current_health = max(0.0, current_health - actual)
 	damaged.emit(info)
 	health_changed.emit(current_health, max_health)
 	if current_health <= 0.0:

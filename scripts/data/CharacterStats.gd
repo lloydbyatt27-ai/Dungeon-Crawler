@@ -25,6 +25,19 @@ extends Resource
 @export var unspent_attribute_points: int = 0
 @export var unspent_skill_points: int = 0
 
+# Equipment bonuses — set by Inventory whenever items are equipped/unequipped.
+# Not exported; recomputed at runtime from the current loadout.
+var bonus_strength: int = 0
+var bonus_agility: int = 0
+var bonus_intelligence: int = 0
+var bonus_stamina: int = 0
+var bonus_max_hp: float = 0.0
+var bonus_max_mana: float = 0.0
+var bonus_weapon_damage: float = 0.0
+var bonus_armor: float = 0.0
+var bonus_crit_chance: float = 0.0
+var bonus_crit_damage: float = 0.0
+
 const LEVEL_CAP: int = 50
 
 # Class presets: how attributes auto-allocate on level-up until we add UI
@@ -37,44 +50,59 @@ const AUTO_ALLOCATE: Dictionary = {
 }
 
 
+# --- Effective attributes (base + equipment bonus) -------------------
+
+func effective_strength() -> int:    return strength + bonus_strength
+func effective_agility() -> int:     return agility + bonus_agility
+func effective_intelligence() -> int: return intelligence + bonus_intelligence
+func effective_stamina() -> int:     return stamina + bonus_stamina
+
+
 # --- Derived stats (formulas mirror the design doc) ------------------
 
 func max_hp() -> float:
-	return 50.0 + stamina * 10.0 + level * 8.0
+	return 50.0 + effective_stamina() * 10.0 + level * 8.0 + bonus_max_hp
 
 func max_mana() -> float:
-	return 20.0 + intelligence * 2.0 + level * 3.0
+	return 20.0 + effective_intelligence() * 2.0 + level * 3.0 + bonus_max_mana
 
 func melee_damage_mult() -> float:
-	return 1.0 + strength * 0.02
+	return 1.0 + effective_strength() * 0.02
 
 func ranged_damage_mult() -> float:
-	return 1.0 + agility * 0.025
+	return 1.0 + effective_agility() * 0.025
 
 func spell_damage_mult() -> float:
-	return 1.0 + intelligence * 0.03
+	return 1.0 + effective_intelligence() * 0.03
 
 func attack_speed_mult() -> float:
-	return 1.0 + agility * 0.005
+	return 1.0 + effective_agility() * 0.005
 
 func dodge_chance() -> float:
-	return min(0.60, agility * 0.005)
+	return min(0.60, effective_agility() * 0.005)
 
 func crit_chance() -> float:
-	return 0.05 + agility * 0.002
+	return 0.05 + effective_agility() * 0.002 + bonus_crit_chance
 
 func crit_damage_mult() -> float:
-	return 1.5  # equipment will add to this later
+	return 1.5 + bonus_crit_damage
 
 func hp_regen_per_sec() -> float:
-	return (max_hp() * 0.005) + (stamina * 0.05)
+	return (max_hp() * 0.005) + (effective_stamina() * 0.05)
 
 func mana_regen_per_sec() -> float:
-	return (max_mana() * 0.01) + (intelligence * 0.04)
+	return (max_mana() * 0.01) + (effective_intelligence() * 0.04)
 
 func cooldown_reduction() -> float:
 	# % reduction (cap 50%)
-	return min(0.5, intelligence * 0.001)
+	return min(0.5, effective_intelligence() * 0.001)
+
+func damage_reduction() -> float:
+	# Armor → DR curve from the design doc, capped at 75%
+	var armor := bonus_armor
+	if armor <= 0:
+		return 0.0
+	return min(0.75, armor / (armor + 100.0 + level * 10.0))
 
 
 # --- Progression ------------------------------------------------------

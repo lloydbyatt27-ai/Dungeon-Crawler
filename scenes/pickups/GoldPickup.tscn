@@ -1,0 +1,33 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/GoldPickup.gd" id="1_gold"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_coin"]
+top_radius = 0.18
+bottom_radius = 0.18
+height = 0.05
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_coin"]
+albedo_color = Color(1, 0.85, 0.2, 1)
+metallic = 0.9
+roughness = 0.25
+emission_enabled = true
+emission = Color(1, 0.7, 0.15, 1)
+emission_energy_multiplier = 0.5
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_coin"]
+radius = 0.35
+
+[node name="GoldPickup" type="Area3D"]
+collision_layer = 64
+collision_mask = 2
+monitorable = true
+script = ExtResource("1_gold")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
+mesh = SubResource("CylinderMesh_coin")
+surface_material_override/0 = SubResource("StandardMaterial3D_coin")
+
+[node name="Shape" type="CollisionShape3D" parent="."]
+shape = SubResource("SphereShape3D_coin")

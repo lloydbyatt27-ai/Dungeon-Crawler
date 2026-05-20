@@ -1,0 +1,98 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/InventoryUI.gd" id="1_inv"]
+
+[node name="InventoryUI" type="CanvasLayer"]
+layer = 5
+script = ExtResource("1_inv")
+
+[node name="Root" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Dim" type="ColorRect" parent="Root"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.55)
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Root"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -360.0
+offset_top = -270.0
+offset_right = 360.0
+offset_bottom = 270.0
+
+[node name="Margin" type="MarginContainer" parent="Root/Panel"]
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_bottom = 18
+
+[node name="VBox" type="VBoxContainer" parent="Root/Panel/Margin"]
+theme_override_constants/separation = 12
+
+[node name="HeaderRow" type="HBoxContainer" parent="Root/Panel/Margin/VBox"]
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="Root/Panel/Margin/VBox/HeaderRow"]
+text = "Inventory"
+theme_override_font_sizes/font_size = 24
+size_flags_horizontal = 3
+
+[node name="GoldLabel" type="Label" parent="Root/Panel/Margin/VBox/HeaderRow"]
+text = "Gold: 0"
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+
+[node name="EquipmentHeader" type="Label" parent="Root/Panel/Margin/VBox"]
+text = "Equipped"
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.75, 0.75, 0.75, 1)
+
+[node name="EquipmentBox" type="HBoxContainer" parent="Root/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 60)
+theme_override_constants/separation = 8
+
+[node name="InventoryHeader" type="Label" parent="Root/Panel/Margin/VBox"]
+text = "Backpack"
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.75, 0.75, 0.75, 1)
+
+[node name="InventoryGrid" type="GridContainer" parent="Root/Panel/Margin/VBox"]
+columns = 6
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+
+[node name="HelpLabel" type="Label" parent="Root/Panel/Margin/VBox"]
+text = "Click an item in your Backpack to equip it.  Click an equipped slot to unequip.  Press I or Esc to close."
+theme_override_font_sizes/font_size = 12
+modulate = Color(0.6, 0.6, 0.65, 1)
+autowrap_mode = 3
+
+[node name="Tooltip" type="PanelContainer" parent="Root"]
+visible = false
+offset_left = 100.0
+offset_top = 100.0
+offset_right = 360.0
+offset_bottom = 280.0
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="Root/Tooltip"]
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Label" type="RichTextLabel" parent="Root/Tooltip/Margin"]
+custom_minimum_size = Vector2(220, 140)
+bbcode_enabled = true
+fit_content = true
+scroll_active = false

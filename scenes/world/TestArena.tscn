@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
 [ext_resource type="Script" path="res://scripts/world/IsometricCamera.gd" id="2_camera"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/ui/DamageNumberSpawner.gd" id="5_spawner"]
 [ext_resource type="PackedScene" path="res://scenes/ui/DamageNumber.tscn" id="6_dmgnum"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/Goblin.tscn" id="7_goblin"]
+[ext_resource type="PackedScene" path="res://scenes/ui/InventoryUI.tscn" id="8_invui"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
 size = Vector2(40, 40)
@@ -200,3 +201,5 @@ script = ExtResource("5_spawner")
 damage_number_scene = ExtResource("6_dmgnum")
 
 [node name="HUD" parent="." instance=ExtResource("4_hud")]
+
+[node name="InventoryUI" parent="." instance=ExtResource("8_invui")]
