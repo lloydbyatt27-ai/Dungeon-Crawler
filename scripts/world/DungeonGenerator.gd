@@ -70,6 +70,7 @@ func _ready() -> void:
 	else:
 		_rng.randomize()
 	_generate()
+	AudioManager.play_music(AudioManager.dungeon_music)
 	await get_tree().process_frame
 	_emit_complete()
 

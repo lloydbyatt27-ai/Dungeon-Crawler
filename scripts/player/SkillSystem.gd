@@ -219,6 +219,7 @@ func try_cast(skill_id: String) -> bool:
 		"cone":       _cast_cone(def, is_crit)
 		"buff":       _cast_buff(def)
 		"projectile": _cast_projectile(def, is_crit)
+	EventBus.sfx_skill_cast.emit(skill_id)
 	return true
 
 

@@ -43,4 +43,9 @@ signal show_floating_text(text: String, position: Vector3, color: Color)
 signal request_screen_shake(strength: float, decay: float)
 signal request_hit_stop(duration: float)
 
+# --- Audio cues ---
+signal sfx_attack_swing
+signal sfx_hit_landed(is_crit: bool)
+signal sfx_skill_cast(skill_id: String)
+
 @warning_ignore_restore("unused_signal")

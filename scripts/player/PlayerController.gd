@@ -274,6 +274,7 @@ func _start_light_attack() -> void:
 	current_attack = LIGHT_PHASES[combo_counter - 1]
 	_enter_attack_phase(AttackPhase.STARTUP)
 	state = State.ATTACKING
+	EventBus.sfx_attack_swing.emit()
 
 
 func _start_heavy_attack() -> void:
@@ -281,6 +282,7 @@ func _start_heavy_attack() -> void:
 	current_attack = HEAVY_PHASE
 	_enter_attack_phase(AttackPhase.STARTUP)
 	state = State.ATTACKING
+	EventBus.sfx_attack_swing.emit()
 
 
 func _enter_attack_phase(phase: AttackPhase) -> void:
