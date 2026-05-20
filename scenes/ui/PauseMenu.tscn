@@ -59,6 +59,11 @@ custom_minimum_size = Vector2(0, 44)
 text = "Settings"
 theme_override_font_sizes/font_size = 18
 
+[node name="AchievementsButton" type="Button" parent="Root/MainPanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 44)
+text = "Achievements"
+theme_override_font_sizes/font_size = 18
+
 [node name="QuitHubButton" type="Button" parent="Root/MainPanel/Margin/VBox"]
 custom_minimum_size = Vector2(0, 44)
 text = "Quit to Hub"

@@ -10,6 +10,7 @@ extends CanvasLayer
 
 @onready var resume_button: Button = $Root/MainPanel/Margin/VBox/ResumeButton
 @onready var settings_button: Button = $Root/MainPanel/Margin/VBox/SettingsButton
+@onready var achievements_button: Button = $Root/MainPanel/Margin/VBox/AchievementsButton
 @onready var quit_hub_button: Button = $Root/MainPanel/Margin/VBox/QuitHubButton
 @onready var quit_menu_button: Button = $Root/MainPanel/Margin/VBox/QuitMenuButton
 
@@ -39,6 +40,7 @@ func _ready() -> void:
 
 	resume_button.pressed.connect(close)
 	settings_button.pressed.connect(_show_settings)
+	achievements_button.pressed.connect(_show_achievements)
 	quit_hub_button.pressed.connect(_quit_to_hub)
 	quit_menu_button.pressed.connect(_quit_to_menu)
 	back_button.pressed.connect(_show_main)
@@ -77,6 +79,13 @@ func close() -> void:
 func _show_settings() -> void:
 	main_panel.visible = false
 	settings_panel.visible = true
+
+
+func _show_achievements() -> void:
+	# Instance the same AchievementsUI used by the Main Menu, anchored above
+	# this pause panel by setting a higher Control z-index. Disposes itself.
+	var ach_ui = preload("res://scenes/ui/AchievementsUI.tscn").instantiate()
+	add_child(ach_ui)
 
 
 func _show_main() -> void:
