@@ -1,0 +1,146 @@
+[gd_scene load_steps=15 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
+[ext_resource type="Script" path="res://scripts/world/IsometricCamera.gd" id="2_camera"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="3_hud"]
+[ext_resource type="Script" path="res://scripts/ui/DamageNumberSpawner.gd" id="4_spawner"]
+[ext_resource type="PackedScene" path="res://scenes/ui/DamageNumber.tscn" id="5_dmgnum"]
+[ext_resource type="PackedScene" path="res://scenes/ui/InventoryUI.tscn" id="6_invui"]
+[ext_resource type="PackedScene" path="res://scenes/ui/VendorUI.tscn" id="7_vendor"]
+[ext_resource type="PackedScene" path="res://scenes/world/Merchant.tscn" id="8_merchant"]
+[ext_resource type="PackedScene" path="res://scenes/world/Portal.tscn" id="9_portal"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
+size = Vector2(28, 28)
+subdivide_width = 8
+subdivide_depth = 8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+albedo_color = Color(0.30, 0.26, 0.30, 1)
+roughness = 0.85
+uv1_scale = Vector3(6, 6, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(28, 0.2, 28)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall"]
+size = Vector3(1, 1, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wall"]
+albedo_color = Color(0.42, 0.36, 0.45, 1)
+roughness = 0.75
+metallic_specular = 0.4
+
+[node name="HubTown" type="Node3D"]
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 7)
+
+[node name="World" type="Node3D" parent="."]
+
+[node name="Floor" type="StaticBody3D" parent="World"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="FloorMesh" type="MeshInstance3D" parent="World/Floor"]
+mesh = SubResource("PlaneMesh_floor")
+surface_material_override/0 = SubResource("StandardMaterial3D_floor")
+
+[node name="FloorCollision" type="CollisionShape3D" parent="World/Floor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+shape = SubResource("BoxShape3D_floor")
+
+[node name="OuterWalls" type="Node3D" parent="World"]
+
+[node name="NorthWall" type="StaticBody3D" parent="World/OuterWalls"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="World/OuterWalls/NorthWall"]
+transform = Transform3D(28, 0, 0, 0, 3, 0, 0, 0, 1, 0, 1.5, -14)
+mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="World/OuterWalls/NorthWall"]
+transform = Transform3D(28, 0, 0, 0, 3, 0, 0, 0, 1, 0, 1.5, -14)
+shape = SubResource("BoxShape3D_floor")
+
+[node name="SouthWall" type="StaticBody3D" parent="World/OuterWalls"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="World/OuterWalls/SouthWall"]
+transform = Transform3D(28, 0, 0, 0, 3, 0, 0, 0, 1, 0, 1.5, 14)
+mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="World/OuterWalls/SouthWall"]
+transform = Transform3D(28, 0, 0, 0, 3, 0, 0, 0, 1, 0, 1.5, 14)
+shape = SubResource("BoxShape3D_floor")
+
+[node name="EastWall" type="StaticBody3D" parent="World/OuterWalls"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="World/OuterWalls/EastWall"]
+transform = Transform3D(1, 0, 0, 0, 3, 0, 0, 0, 28, 14, 1.5, 0)
+mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="World/OuterWalls/EastWall"]
+transform = Transform3D(1, 0, 0, 0, 3, 0, 0, 0, 28, 14, 1.5, 0)
+shape = SubResource("BoxShape3D_floor")
+
+[node name="WestWall" type="StaticBody3D" parent="World/OuterWalls"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="World/OuterWalls/WestWall"]
+transform = Transform3D(1, 0, 0, 0, 3, 0, 0, 0, 28, -14, 1.5, 0)
+mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="Shape" type="CollisionShape3D" parent="World/OuterWalls/WestWall"]
+transform = Transform3D(1, 0, 0, 0, 3, 0, 0, 0, 28, -14, 1.5, 0)
+shape = SubResource("BoxShape3D_floor")
+
+[node name="Merchant" parent="." instance=ExtResource("8_merchant")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, 0)
+
+[node name="Portal" parent="." instance=ExtResource("9_portal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -8)
+
+[node name="Lighting" type="Node3D" parent="."]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Lighting"]
+transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 10, 0)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.7
+shadow_enabled = true
+directional_shadow_max_distance = 40.0
+
+[node name="HearthLight" type="OmniLight3D" parent="Lighting"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 4)
+light_color = Color(1, 0.8, 0.55, 1)
+light_energy = 1.4
+omni_range = 22.0
+
+[node name="MerchantLight" type="OmniLight3D" parent="Lighting"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 3, 0)
+light_color = Color(1, 0.85, 0.6, 1)
+light_energy = 1.0
+omni_range = 8.0
+
+[node name="IsometricCamera" type="Camera3D" parent="."]
+script = ExtResource("2_camera")
+target_path = NodePath("../Player")
+
+[node name="DamageNumberSpawner" type="Node" parent="."]
+script = ExtResource("4_spawner")
+damage_number_scene = ExtResource("5_dmgnum")
+
+[node name="HUD" parent="." instance=ExtResource("3_hud")]
+
+[node name="InventoryUI" parent="." instance=ExtResource("6_invui")]
+
+[node name="VendorUI" parent="." instance=ExtResource("7_vendor")]

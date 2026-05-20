@@ -11,7 +11,7 @@ extends CanvasLayer
 @onready var time_label: Label = $Root/Panel/Margin/VBox/Grid/TimeValue
 @onready var continue_button: Button = $Root/Panel/Margin/VBox/ContinueButton
 
-const MAIN_MENU_PATH: String = "res://scenes/ui/MainMenu.tscn"
+const HUB_PATH: String = "res://scenes/world/HubTown.tscn"
 
 
 func _ready() -> void:
@@ -60,4 +60,7 @@ func _show() -> void:
 
 
 func _on_continue_pressed() -> void:
-	get_tree().change_scene_to_file(MAIN_MENU_PATH)
+	# After clearing, also pre-load the save so the hub picks up the new state
+	if SaveSystem.has_save():
+		SaveSystem.load_save()
+	get_tree().change_scene_to_file(HUB_PATH)

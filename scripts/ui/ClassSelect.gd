@@ -13,7 +13,7 @@ extends Control
 @onready var begin_button: Button = $Center/VBox/BeginButton
 @onready var back_button: Button = $BackButton
 
-const DUNGEON_PATH: String = "res://scenes/world/ProceduralDungeon.tscn"
+const HUB_PATH: String = "res://scenes/world/HubTown.tscn"
 const MAIN_MENU_PATH: String = "res://scenes/ui/MainMenu.tscn"
 
 var _selected_class: String = "Guardian"
@@ -156,7 +156,7 @@ func _on_begin_pressed() -> void:
 		"gold_earned_total": 0, "items_collected": 0,
 		"play_time_seconds": 0.0, "dungeons_completed": 0,
 	}
-	get_tree().change_scene_to_file(DUNGEON_PATH)
+	get_tree().change_scene_to_file(HUB_PATH)
 
 
 func _on_back_pressed() -> void:

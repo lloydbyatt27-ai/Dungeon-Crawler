@@ -6,7 +6,7 @@ extends Control
 @onready var quit_button: Button = $Center/VBox/QuitButton
 @onready var save_info_label: Label = $Center/VBox/SaveInfo
 
-const DUNGEON_PATH: String = "res://scenes/world/ProceduralDungeon.tscn"
+const HUB_PATH: String = "res://scenes/world/HubTown.tscn"
 const CLASS_SELECT_PATH: String = "res://scenes/ui/ClassSelect.tscn"
 
 
@@ -33,7 +33,7 @@ func _on_new_game() -> void:
 func _on_continue() -> void:
 	if SaveSystem.has_save():
 		SaveSystem.load_save()
-	get_tree().change_scene_to_file(DUNGEON_PATH)
+	get_tree().change_scene_to_file(HUB_PATH)
 
 
 func _on_quit() -> void:
