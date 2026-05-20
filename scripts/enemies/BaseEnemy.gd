@@ -16,8 +16,11 @@ extends CharacterBody3D
 @export var gold_min: int = 3
 @export var gold_max: int = 9
 @export var item_drop_chance: float = 0.20
+@export var essence_value: float = 5.0   # essence dropped on death (0 = none)
+@export var essence_drop_chance: float = 0.7  # chance to drop essence
 @export var gold_pickup_scene: PackedScene
 @export var item_pickup_scene: PackedScene
+@export var essence_pickup_scene: PackedScene
 @export_group("Combat")
 @export var attack_damage: float = 12.0
 @export var attack_range: float = 2.0
@@ -250,6 +253,12 @@ func _drop_loot() -> void:
 			get_tree().current_scene.add_child(pile)
 			pile.amount = amount
 			pile.global_position = global_position + Vector3(0, 0.5, 0)
+	# Essence
+	if essence_pickup_scene and essence_value > 0.0 and randf() < essence_drop_chance:
+		var orb := essence_pickup_scene.instantiate()
+		get_tree().current_scene.add_child(orb)
+		orb.amount = essence_value
+		orb.global_position = global_position + Vector3(0, 0.7, 0)
 	# Random item
 	if item_pickup_scene and randf() < item_drop_chance:
 		var item := ItemDatabase.generate_random_item(1)

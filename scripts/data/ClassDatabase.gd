@@ -16,6 +16,10 @@ const CLASSES: Dictionary = {
 		"primary_attr": "strength",
 		"role": "Tank",
 		"difficulty": "Easy",
+		"form_name": "Earth Titan",
+		"form_color": Color(0.55, 0.40, 0.22),
+		"form_emission": Color(1.0, 0.55, 0.20),
+		"form_scale": 1.45,
 	},
 	"Mercenary": {
 		"display_name": "Mercenary",
@@ -27,6 +31,10 @@ const CLASSES: Dictionary = {
 		"primary_attr": "strength",
 		"role": "Bruiser",
 		"difficulty": "Medium",
+		"form_name": "Werewolf",
+		"form_color": Color(0.35, 0.25, 0.50),
+		"form_emission": Color(0.7, 0.3, 1.0),
+		"form_scale": 1.30,
 	},
 	"Disciple": {
 		"display_name": "Disciple",
@@ -38,6 +46,10 @@ const CLASSES: Dictionary = {
 		"primary_attr": "intelligence",
 		"role": "Caster",
 		"difficulty": "Hard",
+		"form_name": "Lich",
+		"form_color": Color(0.20, 0.30, 0.55),
+		"form_emission": Color(0.4, 0.7, 1.0),
+		"form_scale": 1.25,
 	},
 	"Prowler": {
 		"display_name": "Prowler",
@@ -49,6 +61,10 @@ const CLASSES: Dictionary = {
 		"primary_attr": "agility",
 		"role": "Assassin",
 		"difficulty": "Hard",
+		"form_name": "Shadow Demon",
+		"form_color": Color(0.30, 0.10, 0.20),
+		"form_emission": Color(1.0, 0.10, 0.30),
+		"form_scale": 1.30,
 	},
 	"Scout": {
 		"display_name": "Scout",
@@ -60,6 +76,10 @@ const CLASSES: Dictionary = {
 		"primary_attr": "agility",
 		"role": "Ranged DPS",
 		"difficulty": "Medium",
+		"form_name": "Storm Harpy",
+		"form_color": Color(0.30, 0.55, 0.45),
+		"form_emission": Color(0.6, 1.0, 0.7),
+		"form_scale": 1.30,
 	},
 }
 

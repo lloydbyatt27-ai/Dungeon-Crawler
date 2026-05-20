@@ -48,6 +48,7 @@ var buffered_attack: String = ""  # "light" or "heavy" buffered during recovery
 
 # Runtime resources (stats hold the maxes; these track current values)
 var current_mana: float = 0.0
+var current_essence: float = 0.0  # 0-100, shapeshift fuel
 
 # Nodes
 @onready var health: Health = $Health
@@ -56,6 +57,7 @@ var current_mana: float = 0.0
 @onready var body_mesh: MeshInstance3D = $Body
 @onready var skill_system: SkillSystem = $SkillSystem
 @onready var inventory: Inventory = $Inventory
+@onready var shape_shift: ShapeShiftSystem = $ShapeShiftSystem
 
 # Visuals
 var _body_default_material: Material
@@ -309,6 +311,8 @@ func _compute_melee_damage(weapon_base: float) -> float:
 		dmg *= stats.melee_damage_mult()
 	if skill_system:
 		dmg *= (1.0 + skill_system.damage_buff_amount)
+	if shape_shift:
+		dmg *= shape_shift.damage_mult()
 	return dmg
 
 

@@ -170,11 +170,12 @@ func _process(delta: float) -> void:
 	for buff_name in expired:
 		active_buff_timers.erase(buff_name)
 		active_buff_amounts[buff_name] = 0.0
-	# Damage-reduction buff syncs to Health
+	# Damage-reduction sync (armor + buffs + form bonus)
 	if _player and _player.health:
 		var stats_dr := _player.stats.damage_reduction() if _player.stats else 0.0
 		var buff_dr: float = active_buff_amounts.get("damage_reduction_bonus", 0.0)
-		_player.health.damage_reduction = min(0.95, stats_dr + buff_dr)
+		var form_dr: float = _player.shape_shift.dr_bonus() if _player.shape_shift else 0.0
+		_player.health.damage_reduction = min(0.95, stats_dr + buff_dr + form_dr)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -199,7 +200,8 @@ func try_cast(skill_id: String) -> bool:
 
 	_player.current_mana -= mana_cost
 	var cdr: float = _player.stats.cooldown_reduction() if _player.stats else 0.0
-	cooldowns[skill_id] = def.cooldown * (1.0 - cdr)
+	var form_cd_mult: float = _player.shape_shift.skill_cooldown_mult() if _player.shape_shift else 1.0
+	cooldowns[skill_id] = def.cooldown * (1.0 - cdr) * form_cd_mult
 
 	var is_crit := false
 	if _player.stats:
@@ -292,6 +294,8 @@ func _scaled_damage(def: Dictionary, is_crit: bool) -> float:
 			"agility":      dmg *= _player.stats.ranged_damage_mult()
 			"intelligence": dmg *= _player.stats.spell_damage_mult()
 	dmg *= (1.0 + active_buff_amounts.get("damage_bonus", 0.0))
+	if _player.shape_shift:
+		dmg *= _player.shape_shift.skill_damage_mult()
 	if is_crit and _player.stats:
 		dmg *= _player.stats.crit_damage_mult()
 	return dmg

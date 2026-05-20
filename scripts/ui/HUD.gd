@@ -5,14 +5,19 @@ extends CanvasLayer
 @onready var hp_label: Label = $Root/HPGroup/HPLabel
 @onready var mana_bar: ProgressBar = $Root/HPGroup/ManaBar
 @onready var mana_label: Label = $Root/HPGroup/ManaLabel
+@onready var essence_bar: ProgressBar = $Root/HPGroup/EssenceBar
+@onready var essence_label: Label = $Root/HPGroup/EssenceLabel
 @onready var xp_bar: ProgressBar = $Root/HPGroup/XPBar
 @onready var level_label: Label = $Root/HPGroup/LevelLabel
 
 @onready var combo_label: Label = $Root/ComboLabel
 @onready var state_label: Label = $Root/StateLabel
 @onready var gold_label: Label = $Root/GoldLabel
+@onready var form_indicator: Label = $Root/FormIndicator
 @onready var death_overlay: ColorRect = $Root/DeathOverlay
 @onready var skill_bar: HBoxContainer = $Root/SkillBar
+
+var _essence_pulse_t: float = 0.0
 
 var _player: PlayerController
 var _player_health: Health
@@ -24,10 +29,12 @@ var _skill_slot_nodes: Array = []  # array of {bg, fill, name_label, cd_label, k
 func _ready() -> void:
 	death_overlay.visible = false
 	death_overlay.modulate = Color(1, 1, 1, 0)
+	form_indicator.modulate = Color(1, 1, 1, 0)
 	await get_tree().process_frame
 	_bind_to_player()
 	_build_skill_slots()
 	EventBus.player_gold_changed.connect(_on_gold_changed)
+	EventBus.player_shapeshifted.connect(_on_shapeshifted)
 
 
 func _bind_to_player() -> void:
@@ -167,7 +174,17 @@ func _on_gold_changed(new_total: int) -> void:
 	gold_label.text = "Gold: %d" % new_total
 
 
-func _process(_delta: float) -> void:
+func _on_shapeshifted(form_name: String, is_active: bool) -> void:
+	if is_active:
+		form_indicator.text = "▼ " + form_name + " ▼"
+		var tween := create_tween()
+		tween.tween_property(form_indicator, "modulate:a", 1.0, 0.3)
+	else:
+		var tween := create_tween()
+		tween.tween_property(form_indicator, "modulate:a", 0.0, 0.3)
+
+
+func _process(delta: float) -> void:
 	if _player == null:
 		return
 	state_label.text = "State: %s" % PlayerController.State.keys()[_player.state]
@@ -179,6 +196,17 @@ func _process(_delta: float) -> void:
 		mana_bar.max_value = max_m
 		mana_bar.value = _player.current_mana
 		mana_label.text = "%d / %d" % [int(_player.current_mana), int(max_m)]
+
+		# Essence
+		essence_bar.value = _player.current_essence
+		essence_label.text = "Essence: %d / 100" % int(_player.current_essence)
+		# Pulse the bar when at threshold and not transformed
+		if _player.shape_shift and _player.shape_shift.can_activate():
+			_essence_pulse_t += delta * 4.0
+			var pulse: float = 0.7 + 0.3 * abs(sin(_essence_pulse_t))
+			essence_bar.modulate = Color(pulse + 0.2, 0.55 * pulse, 1.0, 1)
+		else:
+			essence_bar.modulate = Color.WHITE
 
 		# XP
 		xp_bar.max_value = float(_player.stats.xp_to_next_level())

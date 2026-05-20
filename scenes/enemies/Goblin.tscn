@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/enemies/BaseEnemy.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://scripts/combat/Health.gd" id="2_health"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/combat/HitBox.gd" id="4_hitbox"]
 [ext_resource type="PackedScene" path="res://scenes/pickups/GoldPickup.tscn" id="5_gold"]
 [ext_resource type="PackedScene" path="res://scenes/pickups/ItemPickup.tscn" id="6_item"]
+[ext_resource type="PackedScene" path="res://scenes/pickups/EssencePickup.tscn" id="7_essence"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -58,6 +59,8 @@ move_speed = 4.5
 aggro_range = 12.0
 gold_pickup_scene = ExtResource("5_gold")
 item_pickup_scene = ExtResource("6_item")
+essence_pickup_scene = ExtResource("7_essence")
+essence_value = 6.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0)

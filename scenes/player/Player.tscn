@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/combat/Health.gd" id="2_health"]
@@ -11,6 +11,7 @@
 [ext_resource type="PackedScene" path="res://scenes/skills/WarcryAura.tscn" id="9_warcry"]
 [ext_resource type="Script" path="res://scripts/systems/Inventory.gd" id="10_inv"]
 [ext_resource type="PackedScene" path="res://scenes/skills/ProjectileEffect.tscn" id="11_projectile"]
+[ext_resource type="Script" path="res://scripts/player/ShapeShiftSystem.gd" id="12_shape"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.4
@@ -109,3 +110,6 @@ projectile_scene = ExtResource("11_projectile")
 
 [node name="Inventory" type="Node" parent="."]
 script = ExtResource("10_inv")
+
+[node name="ShapeShiftSystem" type="Node" parent="."]
+script = ExtResource("12_shape")
