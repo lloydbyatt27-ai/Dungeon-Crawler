@@ -14,6 +14,7 @@ extends Node3D
 @export var shrine_scene: PackedScene
 @export var wall_material: Material
 @export var floor_material: Material
+@export var directional_light: DirectionalLight3D
 @export_group("Layout")
 @export var seed: int = 0
 @export var min_mid_rooms: int = 3
@@ -60,6 +61,7 @@ signal generation_complete(player_spawn: Vector3)
 var _rng: RandomNumberGenerator
 var _player_spawn: Vector3 = Vector3.ZERO
 var generated_rooms: Array = []
+var current_biome: Dictionary = {}
 
 
 func _ready() -> void:
@@ -69,10 +71,50 @@ func _ready() -> void:
 		_rng.seed = seed
 	else:
 		_rng.randomize()
+	_pick_biome()
+	_apply_biome_to_materials()
+	_apply_biome_to_directional_light()
 	_generate()
+	_announce_biome()
 	AudioManager.play_music(AudioManager.dungeon_music)
 	await get_tree().process_frame
 	_emit_complete()
+
+
+func _pick_biome() -> void:
+	if SaveSystem.endless_mode:
+		current_biome = BiomeDatabase.pick_for_endless_floor(SaveSystem.current_endless_floor, _rng)
+	else:
+		current_biome = BiomeDatabase.pick_random(_rng)
+
+
+func _apply_biome_to_materials() -> void:
+	if current_biome.is_empty():
+		return
+	if wall_material is StandardMaterial3D:
+		var wm: StandardMaterial3D = wall_material
+		wm.albedo_color = wm.albedo_color * Color(current_biome.wall_tint)
+	if floor_material is StandardMaterial3D:
+		var fm: StandardMaterial3D = floor_material
+		fm.albedo_color = fm.albedo_color * Color(current_biome.floor_tint)
+
+
+func _apply_biome_to_directional_light() -> void:
+	if directional_light == null or current_biome.is_empty():
+		return
+	directional_light.light_color = current_biome.get("sun_color", directional_light.light_color)
+	directional_light.light_energy = current_biome.get("sun_energy", directional_light.light_energy)
+
+
+func _announce_biome() -> void:
+	if current_biome.is_empty():
+		return
+	# Floating-text announcement in the world above the player spawn
+	EventBus.show_floating_text.emit(
+		current_biome.name.to_upper(),
+		_player_spawn + Vector3(0, 2.6, 0),
+		current_biome.get("sun_color", Color.WHITE)
+	)
 
 
 func _generate() -> void:
@@ -201,10 +243,14 @@ func _build_room(room: Dictionary) -> void:
 	_build_wall_side(center, size, "east",  "east"  in doors)
 	_build_wall_side(center, size, "west",  "west"  in doors)
 
-	# Light
+	# Light — base color from the room spec, multiplied by the biome's tint
 	var light := OmniLight3D.new()
 	light.position = center + Vector3(0, 3.5, 0)
-	light.light_color = spec.get("light_color", Color(1, 0.85, 0.55))
+	var base_color: Color = spec.get("light_color", Color(1, 0.85, 0.55))
+	if not current_biome.is_empty():
+		var tint: Color = current_biome.get("light_tint", Color.WHITE)
+		base_color = Color(base_color.r * tint.r, base_color.g * tint.g, base_color.b * tint.b)
+	light.light_color = base_color
 	light.light_energy = spec.get("light_energy", 1.0)
 	light.omni_range = max(size.x, size.y) * 0.7
 	add_child(light)

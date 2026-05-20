@@ -42,6 +42,7 @@ chest_scene = ExtResource("6_chest")
 shrine_scene = ExtResource("15_shrine")
 wall_material = SubResource("StandardMaterial3D_wall")
 floor_material = SubResource("StandardMaterial3D_floor")
+directional_light = NodePath("../DirectionalLight3D")
 
 [node name="IsometricCamera" type="Camera3D" parent="."]
 script = ExtResource("2_camera")
