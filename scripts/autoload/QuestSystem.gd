@@ -11,12 +11,17 @@ signal quest_completed(quest: Quest)
 const MAX_ACTIVE: int = 3
 const DAILY_REWARD_MULT: float = 3.0
 const DAILY_PATH: String = "user://daily.json"
+const BOUNTY_SLOTS: int = 3
 
 var active_quests: Array[Quest] = []
 
 # Daily quest — auto-rolled per real-world date, cross-character
 var daily_quest: Quest = null
 var daily_seed_date: String = ""
+
+# Daily rotating bounty board. 3 ids, refreshed when the calendar day
+# changes. Stored on disk alongside the daily quest.
+var bounty_ids: Array = []
 
 
 func _ready() -> void:
@@ -25,6 +30,7 @@ func _ready() -> void:
 	EventBus.boss_defeated.connect(_on_boss_defeated)
 	_load_daily()
 	_refresh_daily_if_new_day()
+	_refresh_bounties_if_new_day()
 
 
 # --- Public API ----------------------------------------------------
@@ -147,6 +153,34 @@ func _check_complete(q: Quest) -> void:
 
 ## --- Daily quest -------------------------------------------------
 
+func _refresh_bounties_if_new_day() -> void:
+	var today: String = Time.get_date_string_from_system()
+	if daily_seed_date == today and not bounty_ids.is_empty():
+		return
+	# daily_seed_date will be set by _refresh_daily_if_new_day. Use the same.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(today + ":bounties")
+	bounty_ids.clear()
+	var pool: Array = QuestDatabase.BOUNTY_IDS.duplicate()
+	for _i in range(min(BOUNTY_SLOTS, pool.size())):
+		var pick: int = rng.randi() % pool.size()
+		bounty_ids.append(pool[pick])
+		pool.remove_at(pick)
+	_save_daily()
+	quests_changed.emit()
+
+
+## Returns the rotating bounty ids that haven't already been accepted or
+## completed by this character.
+func available_bounties(active_ids: Array, completed_ids: Array) -> Array:
+	var result: Array = []
+	for id in bounty_ids:
+		if id in active_ids or id in completed_ids:
+			continue
+		result.append(id)
+	return result
+
+
 func _refresh_daily_if_new_day() -> void:
 	var today: String = Time.get_date_string_from_system()
 	if daily_seed_date == today and daily_quest != null:
@@ -208,6 +242,9 @@ func _load_daily() -> void:
 	if not (parsed is Dictionary):
 		return
 	daily_seed_date = String(parsed.get("seed_date", ""))
+	var b = parsed.get("bounty_ids", [])
+	if b is Array:
+		bounty_ids = b
 	var q_data = parsed.get("quest", null)
 	if q_data is Dictionary and q_data.has("id"):
 		var template_id: String = String(q_data.id)
@@ -220,7 +257,7 @@ func _load_daily() -> void:
 
 
 func _save_daily() -> void:
-	var data: Dictionary = {"seed_date": daily_seed_date, "quest": null}
+	var data: Dictionary = {"seed_date": daily_seed_date, "quest": null, "bounty_ids": bounty_ids}
 	if daily_quest:
 		data.quest = {
 			"id": daily_quest.id,

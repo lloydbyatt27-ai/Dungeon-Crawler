@@ -60,8 +60,24 @@ func _rebuild_available() -> void:
 		c.queue_free()
 	if _player == null or _player.stats == null:
 		return
+	# Bounties first — daily rotating contracts with bigger rewards
+	var bounties := QuestSystem.available_bounties(
+		QuestSystem.active_ids(), _player.stats.completed_quest_ids
+	)
+	if not bounties.is_empty():
+		var header := Label.new()
+		header.text = "✦ Bounty Board (rotates daily)"
+		header.add_theme_font_size_override("font_size", 14)
+		header.add_theme_color_override("font_color", Color(1, 0.7, 0.3))
+		available_box.add_child(header)
+		for id in bounties:
+			var def: Dictionary = QuestDatabase.QUESTS[id]
+			available_box.add_child(_make_available_row(id, def))
+		var sep := HSeparator.new()
+		available_box.add_child(sep)
+	# Standard quests
 	var ids := QuestDatabase.available_for(QuestSystem.active_ids(), _player.stats.completed_quest_ids, 5)
-	if ids.is_empty():
+	if ids.is_empty() and bounties.is_empty():
 		var lbl := Label.new()
 		lbl.text = "No new quests available."
 		lbl.modulate = Color(0.6, 0.6, 0.65)
