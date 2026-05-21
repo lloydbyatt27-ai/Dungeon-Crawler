@@ -33,6 +33,8 @@ TutorialManager="*res://scripts/autoload/TutorialManager.gd"
 ControlsManager="*res://scripts/autoload/ControlsManager.gd"
 Bestiary="*res://scripts/autoload/Bestiary.gd"
 MercenarySystem="*res://scripts/autoload/MercenarySystem.gd"
+RunHistory="*res://scripts/autoload/RunHistory.gd"
+BossTimer="*res://scripts/autoload/BossTimer.gd"
 
 [display]
 
