@@ -34,6 +34,44 @@ const SETS: Dictionary = {
 			3: "+30% Crit Damage, +50 Max Mana",
 		},
 	},
+	"bandits_cloak": {
+		"display_name": "Bandit's Cloak",
+		"piece_ids": ["bandit_hood", "bandit_gloves", "bandit_boots"],
+		"tiers": {
+			2: {"agility_bonus": 3, "crit_chance_bonus": 0.05},
+			3: {"crit_damage_bonus": 0.30, "max_hp_bonus": 30.0},
+		},
+		"tier_descriptions": {
+			2: "+3 Agility, +5% Crit Chance",
+			3: "+30% Crit Damage, +30 Max HP",
+		},
+	},
+	"wildheart": {
+		"display_name": "Wildheart",
+		"piece_ids": ["wildheart_helm", "wildheart_armor", "wildheart_boots"],
+		"tiers": {
+			2: {"max_hp_bonus": 60.0},
+			3: {"strength_bonus": 5, "stamina_bonus": 5, "max_hp_bonus": 50.0},
+		},
+		"tier_descriptions": {
+			2: "+60 Max HP",
+			3: "+5 Strength, +5 Stamina, +50 Max HP",
+		},
+	},
+	"suns_vigil": {
+		"display_name": "Sun's Vigil",
+		"piece_ids": ["vigil_sword", "vigil_helm", "vigil_gloves", "vigil_armor"],
+		"tiers": {
+			2: {"strength_bonus": 5},
+			3: {"weapon_damage": 20.0},
+			4: {"crit_chance_bonus": 0.15},
+		},
+		"tier_descriptions": {
+			2: "+5 Strength",
+			3: "+20 Weapon Damage",
+			4: "+15% Crit Chance",
+		},
+	},
 }
 
 
