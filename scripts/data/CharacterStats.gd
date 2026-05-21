@@ -48,6 +48,12 @@ const MAX_SKILL_RANK: int = 3
 # loadout, or via the first sync in PlayerController on a fresh character.
 @export var active_skill_ids: Array[String] = []
 
+# Paragon progression — once level hits LEVEL_CAP, all further xp banks
+# here and each completed paragon level grants +1 unspent_attribute_point.
+# No cap — paragon is the endgame treadmill.
+@export var paragon_level: int = 0
+@export var paragon_xp: int = 0
+
 # Equipment bonuses — set by Inventory whenever items are equipped/unequipped.
 # Not exported; recomputed at runtime from the current loadout.
 var bonus_strength: int = 0
@@ -141,8 +147,15 @@ func damage_reduction() -> float:
 
 func xp_to_next_level() -> int:
 	if level >= LEVEL_CAP:
-		return 0x7FFFFFFF  # effectively infinity
+		return xp_to_next_paragon()
 	return int(100.0 * pow(level, 1.7))
+
+
+## Paragon's curve mirrors the late-game level curve but grows linearly
+## with paragon level, so each tier takes a bit longer than the last
+## without becoming unattainable.
+func xp_to_next_paragon() -> int:
+	return int(100.0 * pow(LEVEL_CAP, 1.7) * (1.0 + paragon_level * 0.05))
 
 
 func attribute_points_per_level() -> int:
@@ -153,27 +166,41 @@ func attribute_points_per_level() -> int:
 
 
 ## Returns a dict describing the outcome of gaining XP:
-##   { "levels_gained": int, "attr_delta": Dictionary, "leftover_xp": int }
+##   { "levels_gained": int, "attr_delta": Dictionary,
+##     "skill_points_gained": int, "paragon_gained": int }
 func gain_xp(amount: int) -> Dictionary:
 	var result := {
 		"levels_gained": 0,
 		"attr_delta": {"strength": 0, "agility": 0, "intelligence": 0, "stamina": 0},
 		"skill_points_gained": 0,
+		"paragon_gained": 0,
 	}
-	if level >= LEVEL_CAP:
-		return result
 
-	xp += amount
-	while xp >= xp_to_next_level() and level < LEVEL_CAP:
-		xp -= xp_to_next_level()
-		level += 1
-		result.levels_gained += 1
-		_auto_allocate(result.attr_delta)
-		unspent_skill_points += 1
-		result.skill_points_gained += 1
+	# Pre-cap: standard level-up loop
+	if level < LEVEL_CAP:
+		xp += amount
+		while xp >= xp_to_next_level() and level < LEVEL_CAP:
+			xp -= xp_to_next_level()
+			level += 1
+			result.levels_gained += 1
+			_auto_allocate(result.attr_delta)
+			unspent_skill_points += 1
+			result.skill_points_gained += 1
+		# Overflow rolls into paragon as soon as the cap is hit
+		if level >= LEVEL_CAP:
+			paragon_xp += xp
+			xp = 0
+	else:
+		# Post-cap: everything banks straight to paragon
+		paragon_xp += amount
 
-	if level >= LEVEL_CAP:
-		xp = 0
+	# Paragon level-up loop — each paragon = +1 attribute point bank
+	while paragon_xp >= xp_to_next_paragon():
+		paragon_xp -= xp_to_next_paragon()
+		paragon_level += 1
+		unspent_attribute_points += 1
+		result.paragon_gained += 1
+
 	return result
 
 
@@ -217,7 +244,12 @@ func invest_skill_point(skill_id: String) -> bool:
 
 
 func xp_progress_ratio() -> float:
-	var needed := xp_to_next_level()
-	if needed <= 0:
+	if level >= LEVEL_CAP:
+		var needed := xp_to_next_paragon()
+		if needed <= 0:
+			return 1.0
+		return clamp(float(paragon_xp) / float(needed), 0.0, 1.0)
+	var needed_l := xp_to_next_level()
+	if needed_l <= 0:
 		return 1.0
-	return clamp(float(xp) / float(needed), 0.0, 1.0)
+	return clamp(float(xp) / float(needed_l), 0.0, 1.0)

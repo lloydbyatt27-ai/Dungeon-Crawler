@@ -77,6 +77,12 @@ var stash: Array:
 var endless_mode: bool = false
 var current_endless_floor: int = 0
 
+# Greater Rift mode (per-run flag + tier; record persists in meta.json)
+var rift_active: bool = false
+var rift_tier: int = 1            # tier of the active rift attempt
+var rift_time_remaining: float = 0.0  # seconds left; HUD ticks it down
+var rift_best_tier: int = 0       # highest cleared tier across all characters
+
 # Run-level transient state used by the area-complete screen
 var run_summary: Dictionary = {}
 
@@ -165,6 +171,7 @@ func _load_meta() -> void:
 		var mods = parsed.get("active_modifiers", [])
 		if mods is Array:
 			active_modifiers = mods
+		rift_best_tier = int(parsed.get("rift_best_tier", 0))
 
 
 func _save_meta() -> void:
@@ -174,6 +181,7 @@ func _save_meta() -> void:
 		"unlocked_classes": unlocked_classes,
 		"meta_dungeons_completed": meta_dungeons_completed,
 		"active_modifiers": active_modifiers,
+		"rift_best_tier": rift_best_tier,
 	}
 	var f := FileAccess.open(META_PATH, FileAccess.WRITE)
 	if f == null:
@@ -410,6 +418,8 @@ func _serialize_player(player: PlayerController) -> Dictionary:
 			"skill_ranks": s.skill_ranks,
 			"hardcore": s.hardcore,
 			"active_skill_ids": s.active_skill_ids,
+			"paragon_level": s.paragon_level,
+			"paragon_xp": s.paragon_xp,
 		},
 		"active_quests": QuestSystem.serialize(),
 		"runtime": {
@@ -471,6 +481,8 @@ func _deserialize_into_player(player: PlayerController, data: Dictionary) -> voi
 	else:
 		s.skill_ranks = {}
 	s.hardcore = bool(sd.get("hardcore", false))
+	s.paragon_level = max(0, int(sd.get("paragon_level", 0)))
+	s.paragon_xp = max(0, int(sd.get("paragon_xp", 0)))
 	var ask = sd.get("active_skill_ids", [])
 	s.active_skill_ids.clear()
 	if ask is Array:

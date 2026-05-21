@@ -473,3 +473,11 @@ func gain_xp(amount: int) -> void:
 			global_position + Vector3(0, 2.0, 0),
 			Color(1, 0.85, 0.3)
 		)
+	if result.paragon_gained > 0:
+		# Paragon up: emit signal-equivalent floating text + stats refresh
+		EventBus.show_floating_text.emit(
+			"PARAGON %d!" % stats.paragon_level,
+			global_position + Vector3(0, 2.0, 0),
+			Color(1.0, 0.55, 1.0)
+		)
+		EventBus.player_stats_changed.emit()

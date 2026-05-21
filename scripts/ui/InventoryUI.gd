@@ -97,9 +97,16 @@ func _rebuild_stats() -> void:
 	var s: CharacterStats = _player.stats
 	# Two columns of (label, value) — GridContainer has 4 cols so each row
 	# is two name/value pairs side-by-side
+	var lvl_text: String = "%d" % s.level
+	var xp_text: String
+	if s.level >= CharacterStats.LEVEL_CAP:
+		lvl_text = "%d  (P%d)" % [s.level, s.paragon_level]
+		xp_text = "%d / %d  (paragon)" % [s.paragon_xp, s.xp_to_next_paragon()]
+	else:
+		xp_text = "%d / %d" % [s.xp, s.xp_to_next_level()]
 	var pairs: Array = [
-		["Level", "%d" % s.level],
-		["XP", "%d / %d" % [s.xp, s.xp_to_next_level()]],
+		["Level", lvl_text],
+		["XP", xp_text],
 		["STR", _attr_text(s.strength, s.bonus_strength)],
 		["AGI", _attr_text(s.agility, s.bonus_agility)],
 		["INT", _attr_text(s.intelligence, s.bonus_intelligence)],

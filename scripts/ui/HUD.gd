@@ -18,6 +18,7 @@ extends CanvasLayer
 @onready var floor_label: Label = $Root/FloorLabel
 @onready var form_indicator: Label = $Root/FormIndicator
 @onready var death_overlay: ColorRect = $Root/DeathOverlay
+@onready var hit_flash: ColorRect = $Root/HitFlash
 @onready var death_recap: RichTextLabel = $Root/DeathOverlay/DeathRecap
 @onready var skill_bar: HBoxContainer = $Root/SkillBar
 @onready var potion_belt: HBoxContainer = $Root/PotionBelt
@@ -45,6 +46,8 @@ func _ready() -> void:
 	EventBus.player_gold_changed.connect(_on_gold_changed)
 	EventBus.player_shards_changed.connect(_on_shards_changed)
 	EventBus.player_shapeshifted.connect(_on_shapeshifted)
+	EventBus.player_dealt_damage.connect(_on_player_dealt_damage)
+	EventBus.player_took_damage.connect(_on_player_took_damage)
 	# Initial sync with current stats
 	if _player and _player.stats:
 		shards_label.text = "%d shards" % _player.stats.soul_shards
@@ -60,11 +63,24 @@ func _apply_difficulty_badge() -> void:
 	if _player and _player.stats and _player.stats.hardcore:
 		difficulty_badge.text = tier + "  ☠ HC"
 		difficulty_badge.add_theme_color_override("font_color", Color(1, 0.35, 0.35))
-	# Floor indicator (visible only in endless mode)
-	if SaveSystem.endless_mode:
+	# Floor / rift indicator (only one is active at a time)
+	if SaveSystem.rift_active:
+		floor_label.text = "Rift T%d   ·   %s" % [
+			SaveSystem.rift_tier,
+			_format_rift_time(SaveSystem.rift_time_remaining)
+		]
+		floor_label.add_theme_color_override("font_color", Color(1, 0.78, 0.35))
+	elif SaveSystem.endless_mode:
 		floor_label.text = "Floor %d" % SaveSystem.current_endless_floor
 	else:
 		floor_label.text = ""
+
+
+static func _format_rift_time(seconds: float) -> String:
+	if seconds <= 0.0:
+		return "0:00"
+	var s: int = int(seconds)
+	return "%d:%02d" % [s / 60, s % 60]
 
 
 func _bind_to_player() -> void:
@@ -301,6 +317,26 @@ func _on_shards_changed(new_total: int) -> void:
 	shards_label.text = "%d shards" % new_total
 
 
+func _on_player_dealt_damage(_target, _amount: float, is_crit: bool) -> void:
+	# Subtle warm flash on crit only — keeps regular hits noise-free.
+	if is_crit:
+		_flash_screen(Color(1.0, 0.75, 0.25, 0.22), 0.18)
+
+
+func _on_player_took_damage(_amount: float, _source) -> void:
+	# Red vignette pulse so big incoming hits register even when the HP
+	# bar isn't in the player's eye line.
+	_flash_screen(Color(1.0, 0.15, 0.15, 0.20), 0.22)
+
+
+func _flash_screen(c: Color, duration: float) -> void:
+	if hit_flash == null:
+		return
+	hit_flash.color = c
+	var t := create_tween()
+	t.tween_property(hit_flash, "color:a", 0.0, duration).set_ease(Tween.EASE_OUT)
+
+
 func _on_shapeshifted(form_name: String, is_active: bool) -> void:
 	if is_active:
 		form_indicator.text = "▼ " + form_name + " ▼"
@@ -312,6 +348,14 @@ func _on_shapeshifted(form_name: String, is_active: bool) -> void:
 
 
 func _process(delta: float) -> void:
+	# Rift timer ticks down regardless of player presence
+	if SaveSystem.rift_active and SaveSystem.rift_time_remaining > 0.0:
+		SaveSystem.rift_time_remaining = max(0.0, SaveSystem.rift_time_remaining - delta)
+		# Refresh the rift label every frame so the countdown is smooth
+		floor_label.text = "Rift T%d   ·   %s" % [
+			SaveSystem.rift_tier,
+			_format_rift_time(SaveSystem.rift_time_remaining)
+		]
 	if _player == null:
 		return
 	state_label.text = "State: %s" % PlayerController.State.keys()[_player.state]
@@ -335,16 +379,25 @@ func _process(delta: float) -> void:
 		else:
 			essence_bar.modulate = Color.WHITE
 
-		# XP
-		xp_bar.max_value = float(_player.stats.xp_to_next_level())
-		xp_bar.value = float(_player.stats.xp)
-		level_label.text = "Lv %d  —  STR %d  AGI %d  INT %d  STA %d" % [
-			_player.stats.level,
-			_player.stats.strength,
-			_player.stats.agility,
-			_player.stats.intelligence,
-			_player.stats.stamina,
-		]
+		# XP — post-cap reads from paragon, pre-cap from the standard bar
+		if _player.stats.level >= CharacterStats.LEVEL_CAP:
+			xp_bar.max_value = float(_player.stats.xp_to_next_paragon())
+			xp_bar.value = float(_player.stats.paragon_xp)
+			level_label.text = "Lv %d  P%d  —  STR %d  AGI %d  INT %d  STA %d" % [
+				_player.stats.level, _player.stats.paragon_level,
+				_player.stats.strength, _player.stats.agility,
+				_player.stats.intelligence, _player.stats.stamina,
+			]
+		else:
+			xp_bar.max_value = float(_player.stats.xp_to_next_level())
+			xp_bar.value = float(_player.stats.xp)
+			level_label.text = "Lv %d  —  STR %d  AGI %d  INT %d  STA %d" % [
+				_player.stats.level,
+				_player.stats.strength,
+				_player.stats.agility,
+				_player.stats.intelligence,
+				_player.stats.stamina,
+			]
 
 	# Skill cooldowns
 	if _player.skill_system:
