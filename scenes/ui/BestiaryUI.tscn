@@ -1,0 +1,70 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/BestiaryUI.gd" id="1_best"]
+
+[node name="BestiaryUI" type="CanvasLayer"]
+layer = 7
+script = ExtResource("1_best")
+
+[node name="Root" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Dim" type="ColorRect" parent="Root"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.62)
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Root"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -280.0
+offset_right = 300.0
+offset_bottom = 280.0
+
+[node name="Margin" type="MarginContainer" parent="Root/Panel"]
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="VBox" type="VBoxContainer" parent="Root/Panel/Margin"]
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Root/Panel/Margin/VBox"]
+text = "Bestiary"
+theme_override_font_sizes/font_size = 26
+theme_override_colors/font_color = Color(1, 0.78, 0.35, 1)
+
+[node name="Subtitle" type="Label" parent="Root/Panel/Margin/VBox"]
+text = "Creatures you have slain."
+theme_override_font_sizes/font_size = 12
+modulate = Color(0.7, 0.7, 0.75, 1)
+
+[node name="StatsLabel" type="Label" parent="Root/Panel/Margin/VBox"]
+text = "0 species, 0 total kills"
+theme_override_font_sizes/font_size = 13
+modulate = Color(0.85, 0.85, 0.55, 1)
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Root/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 400)
+size_flags_vertical = 3
+
+[node name="EntryList" type="VBoxContainer" parent="Root/Panel/Margin/VBox/ScrollContainer"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="Spacer" type="Control" parent="Root/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 6)
+
+[node name="CloseButton" type="Button" parent="Root/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 36)
+text = "Close (Esc)"
