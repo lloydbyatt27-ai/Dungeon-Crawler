@@ -10,6 +10,7 @@ extends Node3D
 @export var skeleton_mage_scene: PackedScene
 @export var orc_brute_scene: PackedScene
 @export var goblin_chief_scene: PackedScene
+@export var skeleton_king_scene: PackedScene
 @export var chest_scene: PackedScene
 @export var shrine_scene: PackedScene
 @export var wall_material: Material
@@ -23,6 +24,7 @@ extends Node3D
 @export var wall_height: float = 3.0
 @export var wall_thickness: float = 1.0
 @export_range(0.0, 1.0) var side_branch_chance: float = 0.45
+@export_range(0.0, 1.0) var cursed_room_chance: float = 0.22
 
 const ROOM_SPECS: Dictionary = {
 	"entry":        {"size": Vector2(20, 16), "enemies": 0, "is_entry": true,
@@ -151,12 +153,19 @@ func _layout_main_chain() -> void:
 			doors.append("north")
 		if i < sequence.size() - 1:
 			doors.append("south")
+		# Cursed rolls only on combat mid-rooms — never the entry, treasure
+		# (already-rewarding), or the boss room.
+		var cursed: bool = (
+			type_id in ["combat_small", "combat_large"]
+			and _rng.randf() < cursed_room_chance
+		)
 		var room := {
 			"type": type_id,
 			"center": center,
 			"size": size,
 			"doors": doors,
 			"is_main": true,
+			"cursed": cursed,
 		}
 		generated_rooms.append(room)
 		if spec.get("is_entry", false):
@@ -339,6 +348,21 @@ func _populate_room(room: Dictionary) -> void:
 	var center: Vector3 = room.center
 	var size: Vector2 = room.size
 	var spec: Dictionary = ROOM_SPECS.get(room.type, {})
+	var cursed: bool = room.get("cursed", false)
+
+	# Cursed room: red point-light + a floating announcement
+	if cursed:
+		var curse_light := OmniLight3D.new()
+		curse_light.light_color = Color(1.0, 0.25, 0.25)
+		curse_light.light_energy = 1.6
+		curse_light.omni_range = max(size.x, size.y) * 0.6
+		add_child(curse_light)
+		curse_light.global_position = center + Vector3(0, 2.4, 0)
+		EventBus.show_floating_text.emit(
+			"CURSED",
+			center + Vector3(0, 3.0, 0),
+			Color(1, 0.3, 0.3)
+		)
 
 	# Regular enemies
 	var n_enemies: int = spec.get("enemies", 0)
@@ -355,13 +379,22 @@ func _populate_room(room: Dictionary) -> void:
 		)
 		_apply_difficulty(enemy)
 		_apply_biome_flavor(enemy)
+		if cursed:
+			_apply_cursed_buff(enemy)
 	# Boss
-	if spec.get("boss", false) and goblin_chief_scene:
-		var boss := goblin_chief_scene.instantiate()
-		add_child(boss)
-		boss.global_position = center + Vector3(0, 0, -size.y * 0.25)
-		_apply_difficulty(boss)
-		_apply_biome_flavor(boss)
+	if spec.get("boss", false):
+		var boss_pool: Array = []
+		if goblin_chief_scene:
+			boss_pool.append(goblin_chief_scene)
+		if skeleton_king_scene:
+			boss_pool.append(skeleton_king_scene)
+		if not boss_pool.is_empty():
+			var pick: PackedScene = boss_pool[_rng.randi() % boss_pool.size()]
+			var boss := pick.instantiate()
+			add_child(boss)
+			boss.global_position = center + Vector3(0, 0, -size.y * 0.25)
+			_apply_difficulty(boss)
+			_apply_biome_flavor(boss)
 	# Mini-boss (side branch) — beefier Orc Brute
 	if spec.get("mini_boss", false) and orc_brute_scene:
 		var brute := orc_brute_scene.instantiate()
@@ -423,6 +456,35 @@ func _apply_biome_flavor(enemy: Node) -> void:
 	if not is_boss_ref and prefix != "" and "display_name" in enemy:
 		if enemy.display_name == "":
 			enemy.display_name = prefix
+
+
+## Stack a cursed-room buff on top of standard difficulty: tougher enemies
+## in exchange for better drops. Cursed rooms are visually marked with a
+## red light and a "CURSED" floating banner.
+func _apply_cursed_buff(enemy: Node) -> void:
+	var hp_node := enemy.get_node_or_null("Health") as Health
+	if hp_node:
+		hp_node.max_health *= 1.5
+		hp_node.current_health = hp_node.max_health
+		hp_node.health_changed.emit(hp_node.current_health, hp_node.max_health)
+	if "attack_damage" in enemy:
+		enemy.attack_damage *= 1.3
+	if "item_drop_chance" in enemy:
+		enemy.item_drop_chance = min(1.0, enemy.item_drop_chance + 0.35)
+	if "gold_min" in enemy and "gold_max" in enemy:
+		enemy.gold_min = int(enemy.gold_min * 1.5)
+		enemy.gold_max = int(enemy.gold_max * 1.5)
+	# Tint the body slightly red so cursed enemies read at a glance
+	var body := enemy.get_node_or_null("Body") as MeshInstance3D
+	if body:
+		var mat := body.get_surface_override_material(0)
+		if mat is StandardMaterial3D:
+			var sm: StandardMaterial3D = mat.duplicate()
+			sm.albedo_color = sm.albedo_color.lerp(Color(1, 0.2, 0.2), 0.35)
+			sm.emission_enabled = true
+			sm.emission = Color(1.0, 0.15, 0.1)
+			sm.emission_energy_multiplier = max(sm.emission_energy_multiplier, 0.25)
+			body.set_surface_override_material(0, sm)
 
 
 ## Apply the current run's difficulty + endless-floor multipliers to an enemy.
