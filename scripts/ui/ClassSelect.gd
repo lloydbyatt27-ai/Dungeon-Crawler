@@ -10,6 +10,7 @@ extends Control
 @onready var stats_label: RichTextLabel = $Center/VBox/DetailPanel/Margin/VBox/StatsLabel
 @onready var skills_label: RichTextLabel = $Center/VBox/DetailPanel/Margin/VBox/SkillsLabel
 @onready var difficulty_row: HBoxContainer = $Center/VBox/DifficultyRow
+@onready var hardcore_check: CheckButton = $Center/VBox/HardcoreRow/HardcoreButton
 @onready var begin_button: Button = $Center/VBox/BeginButton
 @onready var back_button: Button = $BackButton
 
@@ -149,6 +150,7 @@ func _on_begin_pressed() -> void:
 	# Stash the class + difficulty on the SaveSystem
 	SaveSystem.pending_class = _selected_class
 	SaveSystem.current_run_difficulty = _selected_difficulty
+	SaveSystem.pending_hardcore = hardcore_check.button_pressed
 	SaveSystem.delete_save()
 	SaveSystem.pending_load_data = {}
 	GameState.run_stats = {

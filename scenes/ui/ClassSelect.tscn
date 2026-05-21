@@ -96,6 +96,20 @@ modulate = Color(0.8, 0.8, 0.85, 1)
 alignment = 1
 theme_override_constants/separation = 12
 
+[node name="HardcoreRow" type="HBoxContainer" parent="Center/VBox"]
+alignment = 1
+theme_override_constants/separation = 14
+
+[node name="HardcoreButton" type="CheckButton" parent="Center/VBox/HardcoreRow"]
+text = "Hardcore — Permadeath"
+theme_override_font_sizes/font_size = 16
+
+[node name="HardcoreHint" type="Label" parent="Center/VBox/HardcoreRow"]
+text = "If you die, your save is deleted."
+theme_override_font_sizes/font_size = 11
+modulate = Color(0.65, 0.65, 0.7, 1)
+vertical_alignment = 1
+
 [node name="BeginButton" type="Button" parent="Center/VBox"]
 custom_minimum_size = Vector2(0, 56)
 text = "Begin Adventure"
