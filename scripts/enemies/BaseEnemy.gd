@@ -212,6 +212,11 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
+	# Phase 2 hook for subclasses (summon, charge, etc.) — fires whenever
+	# the enemy is in phase 2 and not dead.
+	if _phase >= 2 and state != State.DEAD:
+		_phase_2_tick(delta)
+
 	# Always face the player when alive and in combat
 	if state in [State.AGGRO, State.TELEGRAPH, State.ACTIVE, State.RECOVER] and _player:
 		var to_player := _player.global_position - global_position
@@ -407,11 +412,23 @@ func _drop_loot() -> void:
 		var item := ItemDatabase.generate_random_item(1)
 		if item:
 			_spawn_item_pickup(item)
+	# Rare gem drop (independent of regular loot). Bosses double the chance.
+	if item_pickup_scene:
+		var gem_chance: float = 0.10 if is_boss else 0.04
+		if randf() < gem_chance:
+			var gem := ItemDatabase.roll_gem()
+			if gem:
+				_spawn_item_pickup(gem, Vector3(randf_range(-0.4, 0.4), 0.5, randf_range(-0.4, 0.4)))
 	# Guaranteed boss drop
 	if is_boss and guaranteed_drop_id != "":
 		var unique := ItemDatabase.create_by_id(guaranteed_drop_id)
 		if unique:
 			_spawn_item_pickup(unique, Vector3(randf_range(-0.6, 0.6), 0.6, randf_range(-0.6, 0.6)))
+	# Bosses also have a chance to drop a set-item piece
+	if is_boss and randf() < 0.5:
+		var set_piece := ItemDatabase.roll_set_piece()
+		if set_piece:
+			_spawn_item_pickup(set_piece, Vector3(randf_range(-0.6, 0.6), 0.6, randf_range(-0.6, 0.6)))
 
 
 func _spawn_item_pickup(item: Item, offset: Vector3 = Vector3(0, 0.6, 0)) -> void:
@@ -539,6 +556,13 @@ func _drop_aoe_attack() -> void:
 	# Position at the telegraph anchor; height handled by the effect itself
 	aoe.global_position = _telegraph_world_anchor
 	aoe.setup(attack_damage, false, aoe_radius, aoe_color)
+
+
+## Override in subclasses to add phase-2 behavior (summoning minions,
+## charge attacks, periodic aoe, etc.). Called every physics frame while
+## the enemy is in phase 2 and not dead.
+func _phase_2_tick(_delta: float) -> void:
+	pass
 
 
 func _flash_white() -> void:

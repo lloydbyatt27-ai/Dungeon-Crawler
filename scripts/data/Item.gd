@@ -30,6 +30,24 @@ enum Rarity { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY }
 @export var sell_value: int = 1
 @export var upgrade_level: int = 0   # 0 = base; +1, +2, ... from forge upgrades
 
+# Pinned items are locked against accidental sell / salvage / unsocket.
+# Toggle from the inventory tooltip via the P hotkey.
+@export var pinned: bool = false
+
+# Sockets — rare+ items roll with 1-3 sockets; gems consume one socket each
+# and merge their stat bonuses into the item permanently.
+@export var socket_count: int = 0
+@export var socketed_gems: Array[String] = []
+
+# Consumables — health/mana potions etc.
+# potion_effect ∈ {"", "heal", "mana"}; potion_value is the amount restored.
+@export var potion_effect: String = ""
+@export var potion_value: float = 0.0
+
+# Set membership — items belonging to a named set grant bonuses when you
+# wear multiple pieces. Empty string = no set.
+@export var set_id: String = ""
+
 
 func get_slot() -> String:
 	match item_type:
@@ -93,6 +111,55 @@ func upgrade_cost() -> int:
 	if upgrade_level >= 5:
 		return -1
 	return (upgrade_level + 1) * 5 * (int(rarity) + 1)
+
+
+## True if this item is a socketable gem (lives in inventory as a MISC item
+## with an item_id beginning "gem_"). Gems aren't equipped — they're consumed
+## into another item's socket via the Forge.
+func is_gem() -> bool:
+	return item_type == ItemType.MISC and item_id.begins_with("gem_")
+
+
+func is_potion() -> bool:
+	return item_type == ItemType.CONSUMABLE and potion_effect != ""
+
+
+## Items with sockets can absorb a gem. Returns true if the gem was applied.
+func can_socket() -> bool:
+	return socket_count > 0 and socketed_gems.size() < socket_count
+
+
+## Merge a gem's stat bonuses into this item and consume one socket slot.
+## Caller is responsible for removing the gem from the player's inventory.
+func socket_gem(gem: Item) -> bool:
+	if gem == null or not gem.is_gem() or not can_socket():
+		return false
+	socketed_gems.append(gem.item_id)
+	weapon_damage += gem.weapon_damage
+	armor += gem.armor
+	max_hp_bonus += gem.max_hp_bonus
+	max_mana_bonus += gem.max_mana_bonus
+	strength_bonus += gem.strength_bonus
+	agility_bonus += gem.agility_bonus
+	intelligence_bonus += gem.intelligence_bonus
+	stamina_bonus += gem.stamina_bonus
+	crit_chance_bonus += gem.crit_chance_bonus
+	crit_damage_bonus += gem.crit_damage_bonus
+	# Reroll sell value to reflect the new stats
+	sell_value += max(1, int(gem.sell_value * 0.5))
+	return true
+
+
+## Returns "●●○" style indicator: filled circles for used sockets,
+## empty circles for free ones.
+func sockets_glyph() -> String:
+	if socket_count <= 0:
+		return ""
+	var filled: int = socketed_gems.size()
+	var out := ""
+	for i in range(socket_count):
+		out += "●" if i < filled else "○"
+	return out
 
 
 func tooltip_text() -> String:

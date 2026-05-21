@@ -39,6 +39,39 @@ static func render(label: RichTextLabel, item: Item, equipped: Item = null) -> v
 	# Stat rows with optional comparison
 	for row in STAT_ROWS:
 		_stat_row(label, item, equipped, row)
+	# Sockets
+	if item.socket_count > 0:
+		label.newline()
+		label.push_color(Color(0.85, 0.75, 0.55))
+		label.add_text("Sockets: %s" % item.sockets_glyph())
+		label.pop()
+	# Set membership + tier preview
+	if item.set_id != "":
+		var set_def: Dictionary = SetDatabase.get_set(item.set_id)
+		if not set_def.is_empty():
+			label.newline()
+			label.push_color(Color(0.80, 0.85, 1.0))
+			label.add_text("Set: %s" % set_def.display_name)
+			label.pop()
+			label.newline()
+			# Show tier descriptions; this tooltip doesn't know how many are
+			# worn so the bonuses read as future potential.
+			var tiers: Dictionary = set_def.get("tier_descriptions", {})
+			var tier_keys: Array = tiers.keys()
+			tier_keys.sort()
+			for n in tier_keys:
+				label.push_color(Color(0.60, 0.65, 0.85))
+				label.add_text("  (%d pc) %s" % [int(n), tiers[n]])
+				label.pop()
+				label.newline()
+	# Potion effect
+	if item.is_potion():
+		var pcol := Color(0.55, 1.0, 0.55) if item.potion_effect == "heal" else Color(0.55, 0.75, 1.0)
+		var ptxt := "Restores %d HP" if item.potion_effect == "heal" else "Restores %d Mana"
+		label.push_color(pcol)
+		label.add_text(ptxt % int(item.potion_value))
+		label.pop()
+		label.newline()
 	# Description
 	if item.description != "":
 		label.newline()
@@ -46,6 +79,13 @@ static func render(label: RichTextLabel, item: Item, equipped: Item = null) -> v
 		label.push_italics()
 		label.add_text(item.description)
 		label.pop()
+		label.pop()
+		label.newline()
+	# Pin indicator
+	if item.pinned:
+		label.newline()
+		label.push_color(Color(1.0, 0.85, 0.4))
+		label.add_text("PINNED  (locked against sell / salvage)")
 		label.pop()
 		label.newline()
 	# Compare hint or "nothing equipped"
@@ -63,6 +103,12 @@ static func render(label: RichTextLabel, item: Item, equipped: Item = null) -> v
 			label.add_text("Comparing to: %s" % equipped.display_with_upgrade())
 			label.pop()
 			label.pop()
+		label.newline()
+		label.push_color(COL_HINT)
+		label.push_italics()
+		label.add_text("Press P to %s" % ("unpin" if item.pinned else "pin"))
+		label.pop()
+		label.pop()
 
 
 static func _stat_row(label: RichTextLabel, item: Item, equipped: Item, row: Dictionary) -> void:

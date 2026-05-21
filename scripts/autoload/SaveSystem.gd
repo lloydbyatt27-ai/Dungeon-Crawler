@@ -16,7 +16,10 @@ extends Node
 const SAVE_PATH: String = "user://savegame.json"
 const META_PATH: String = "user://meta.json"
 const STASH_PATH: String = "user://stash.json"
-const STASH_CAPACITY: int = 50
+const STASH_CAPACITY: int = 50           # legacy single-tab capacity
+const STASH_TAB_COUNT: int = 4
+const STASH_TAB_CAPACITY: int = 40
+const STASH_TAB_NAMES: Array = ["General", "Gems", "Sets", "Dump"]
 const VERSION: int = 1
 
 # Cached deserialized save (set by load_save), applied to the next player spawn.
@@ -25,6 +28,7 @@ var pending_load_data: Dictionary = {}
 # Class chosen on the ClassSelect screen for the next New Game session.
 # Read by PlayerController._ready when no save data is being applied.
 var pending_class: String = ""
+var pending_hardcore: bool = false
 
 # Difficulty chosen on the ClassSelect screen for the upcoming dungeon.
 # Read by DungeonGenerator on _ready.
@@ -34,9 +38,28 @@ var pending_difficulty: String = "Normal"
 var unlocked_difficulties: Array = ["Normal"]
 var current_run_difficulty: String = "Normal"  # active during a run
 
-# Cross-character stash (shared). Stored as Item instances; persisted to
-# user://stash.json as save-entry dicts {id, upgrade}.
-var stash: Array[Item] = []
+# Auto-pickup filter. Items with rarity below this value won't auto-pick
+# when the player walks over them. 0 = pick up everything.
+var loot_filter_min_rarity: int = 0
+
+# Cross-character stash, organized into named tabs. Persisted to
+# user://stash.json as {"tabs": [[entry, ...], ...]} or — for backward
+# compatibility with single-tab saves from W24 — a top-level Array.
+var stash_tabs: Array = []  # Array[Array[Item]] — outer indexed 0..STASH_TAB_COUNT-1
+
+# Legacy alias: `stash` continues to point at tab 0 so older callers
+# (Stash NPC opened signal, save migration) keep working. Typed as Array
+# (without an element type) so the property assignment doesn't trip the
+# GDScript variant-narrowing checks.
+var stash: Array:
+	get:
+		if stash_tabs.is_empty():
+			_init_stash_tabs()
+		return stash_tabs[0]
+	set(value):
+		if stash_tabs.is_empty():
+			_init_stash_tabs()
+		stash_tabs[0] = value
 
 # Endless mode tracking (per-run, not persisted)
 var endless_mode: bool = false
@@ -47,8 +70,16 @@ var run_summary: Dictionary = {}
 
 
 func _ready() -> void:
+	_init_stash_tabs()
 	_load_meta()
 	_load_stash()
+
+
+func _init_stash_tabs() -> void:
+	stash_tabs.clear()
+	for _i in range(STASH_TAB_COUNT):
+		var arr: Array[Item] = []
+		stash_tabs.append(arr)
 
 
 func _load_meta() -> void:
@@ -65,16 +96,25 @@ func _load_meta() -> void:
 			unlocked_difficulties = arr
 		if not "Normal" in unlocked_difficulties:
 			unlocked_difficulties.append("Normal")
+		loot_filter_min_rarity = int(parsed.get("loot_filter_min_rarity", 0))
 
 
 func _save_meta() -> void:
-	var data := {"unlocked_difficulties": unlocked_difficulties}
+	var data := {
+		"unlocked_difficulties": unlocked_difficulties,
+		"loot_filter_min_rarity": loot_filter_min_rarity,
+	}
 	var f := FileAccess.open(META_PATH, FileAccess.WRITE)
 	if f == null:
 		push_error("Could not open meta file for writing: " + META_PATH)
 		return
 	f.store_string(JSON.stringify(data, "\t"))
 	f.close()
+
+
+func set_loot_filter(min_rarity: int) -> void:
+	loot_filter_min_rarity = clamp(min_rarity, 0, 4)
+	_save_meta()
 
 
 func unlock_difficulty(tier: String) -> bool:
@@ -88,7 +128,7 @@ func unlock_difficulty(tier: String) -> bool:
 # --- Cross-character stash ----------------------------------------
 
 func _load_stash() -> void:
-	stash.clear()
+	_init_stash_tabs()
 	if not FileAccess.file_exists(STASH_PATH):
 		return
 	var f := FileAccess.open(STASH_PATH, FileAccess.READ)
@@ -96,38 +136,72 @@ func _load_stash() -> void:
 		return
 	var parsed = JSON.parse_string(f.get_as_text())
 	f.close()
-	if not (parsed is Array):
+	# Legacy single-tab save: top-level Array. New format: {"tabs": [[...], ...]}.
+	if parsed is Array:
+		for entry in parsed:
+			var item := _item_from_save_entry(entry)
+			if item:
+				stash_tabs[0].append(item)
+		_save_stash()  # migrate to new format
 		return
-	for entry in parsed:
-		var item := _item_from_save_entry(entry)
-		if item:
-			stash.append(item)
+	if parsed is Dictionary:
+		var tabs = parsed.get("tabs", [])
+		if tabs is Array:
+			for i in range(min(tabs.size(), STASH_TAB_COUNT)):
+				var tab_entries = tabs[i]
+				if not (tab_entries is Array):
+					continue
+				for entry in tab_entries:
+					var item := _item_from_save_entry(entry)
+					if item:
+						stash_tabs[i].append(item)
 
 
 func _save_stash() -> void:
-	var entries: Array = []
-	for item in stash:
-		entries.append({"id": item.item_id, "upgrade": item.upgrade_level})
+	var data: Dictionary = {"tabs": []}
+	for tab in stash_tabs:
+		var arr: Array = []
+		for item in tab:
+			arr.append(_save_entry_for(item))
+		data.tabs.append(arr)
 	var f := FileAccess.open(STASH_PATH, FileAccess.WRITE)
 	if f == null:
 		return
-	f.store_string(JSON.stringify(entries, "\t"))
+	f.store_string(JSON.stringify(data, "\t"))
 	f.close()
 
 
-func stash_add(item: Item) -> bool:
-	if item == null or stash.size() >= STASH_CAPACITY:
+## Add an item to the given stash tab. Defaults to tab 0 for back-compat
+## with the old API.
+func stash_add(item: Item, tab_index: int = 0) -> bool:
+	if item == null:
 		return false
-	stash.append(item)
+	if tab_index < 0 or tab_index >= STASH_TAB_COUNT:
+		return false
+	if stash_tabs[tab_index].size() >= STASH_TAB_CAPACITY:
+		return false
+	stash_tabs[tab_index].append(item)
 	_save_stash()
 	return true
 
 
-func stash_take(index: int) -> Item:
-	if index < 0 or index >= stash.size():
+## Remove and return the item at (tab_index, index). Single-arg form
+## (`stash_take(index)`) still pulls from tab 0.
+func stash_take(arg0, arg1 = null) -> Item:
+	var tab_index: int = 0
+	var index: int = 0
+	if arg1 == null:
+		index = int(arg0)
+	else:
+		tab_index = int(arg0)
+		index = int(arg1)
+	if tab_index < 0 or tab_index >= STASH_TAB_COUNT:
 		return null
-	var item := stash[index]
-	stash.remove_at(index)
+	var tab: Array = stash_tabs[tab_index]
+	if index < 0 or index >= tab.size():
+		return null
+	var item: Item = tab[index]
+	tab.remove_at(index)
 	_save_stash()
 	return item
 
@@ -180,14 +254,20 @@ func delete_save() -> void:
 
 
 ## Build an Item from a save entry: either a plain id string (legacy) or
-## a dict with {id, upgrade}. Re-applies upgrade() upgrade_level times so
-## the item's stat scaling matches.
+## a dict with {id, upgrade, sockets, gems}. Re-applies upgrade() and
+## re-sockets stored gem ids so the item's stat scaling matches.
 func _item_from_save_entry(entry) -> Item:
 	var id: String = ""
 	var upgrades: int = 0
+	var sockets: int = 0
+	var gems: Array = []
 	if entry is Dictionary:
 		id = String(entry.get("id", ""))
 		upgrades = int(entry.get("upgrade", 0))
+		sockets = int(entry.get("sockets", 0))
+		var g = entry.get("gems", [])
+		if g is Array:
+			gems = g
 	elif entry is String:
 		id = entry
 	if id == "":
@@ -197,7 +277,25 @@ func _item_from_save_entry(entry) -> Item:
 		return null
 	for _i in range(upgrades):
 		item.upgrade()
+	if sockets > 0:
+		item.socket_count = sockets
+		for gid in gems:
+			var gem := ItemDatabase.create_by_id(String(gid))
+			if gem:
+				item.socket_gem(gem)
+	if entry is Dictionary and entry.get("pinned", false):
+		item.pinned = true
 	return item
+
+
+func _save_entry_for(item: Item) -> Dictionary:
+	var d: Dictionary = {"id": item.item_id, "upgrade": item.upgrade_level}
+	if item.socket_count > 0:
+		d["sockets"] = item.socket_count
+		d["gems"] = item.socketed_gems.duplicate()
+	if item.pinned:
+		d["pinned"] = true
+	return d
 
 
 # --- Serialization --------------------------------------------------
@@ -223,6 +321,8 @@ func _serialize_player(player: PlayerController) -> Dictionary:
 			"unspent_skill_points": s.unspent_skill_points,
 			"best_endless_floor": s.best_endless_floor,
 			"completed_quest_ids": s.completed_quest_ids,
+			"skill_ranks": s.skill_ranks,
+			"hardcore": s.hardcore,
 		},
 		"active_quests": QuestSystem.serialize(),
 		"runtime": {
@@ -235,15 +335,21 @@ func _serialize_player(player: PlayerController) -> Dictionary:
 		"dungeons_completed": GameState.run_stats.get("dungeons_completed", 0),
 	}
 	if inv:
-		# Save equipped items with their upgrade level so it survives reload
+		# Save equipped items with their upgrade level + sockets so they survive reload
 		for slot in Inventory.SLOTS:
 			var item: Item = inv.equipment[slot]
 			if item:
-				data.equipment[slot] = {"id": item.item_id, "upgrade": item.upgrade_level}
+				data.equipment[slot] = _save_entry_for(item)
 			else:
 				data.equipment[slot] = ""
 		for it in inv.items:
-			data.inventory.append({"id": it.item_id, "upgrade": it.upgrade_level})
+			data.inventory.append(_save_entry_for(it))
+		data["potion_belt"] = []
+		for belt_item in inv.potion_belt:
+			if belt_item:
+				data.potion_belt.append(_save_entry_for(belt_item))
+			else:
+				data.potion_belt.append("")
 	return data
 
 
@@ -266,6 +372,12 @@ func _deserialize_into_player(player: PlayerController, data: Dictionary) -> voi
 	s.unspent_attribute_points = int(sd.get("unspent_attribute_points", 0))
 	s.unspent_skill_points = int(sd.get("unspent_skill_points", 0))
 	s.best_endless_floor = int(sd.get("best_endless_floor", 0))
+	var sr = sd.get("skill_ranks", {})
+	if sr is Dictionary:
+		s.skill_ranks = sr.duplicate()
+	else:
+		s.skill_ranks = {}
+	s.hardcore = bool(sd.get("hardcore", false))
 	# Quest completion record
 	var cq_raw = sd.get("completed_quest_ids", [])
 	if cq_raw is Array:
@@ -296,6 +408,15 @@ func _deserialize_into_player(player: PlayerController, data: Dictionary) -> voi
 			var item2 := _item_from_save_entry(eq.get(slot, ""))
 			if item2:
 				inv.equipment[slot] = item2
+		# Potion belt — preserved across saves
+		for i in range(Inventory.POTION_BELT_SIZE):
+			inv.potion_belt[i] = null
+		var belt_data = data.get("potion_belt", [])
+		if belt_data is Array:
+			for i in range(min(belt_data.size(), Inventory.POTION_BELT_SIZE)):
+				var belt_item := _item_from_save_entry(belt_data[i])
+				inv.potion_belt[i] = belt_item
+		inv.belt_changed.emit()
 		inv._refresh_stats()
 		inv.items_changed.emit()
 
