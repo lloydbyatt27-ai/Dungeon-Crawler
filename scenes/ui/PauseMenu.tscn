@@ -27,9 +27,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -200.0
-offset_top = -200.0
+offset_top = -260.0
 offset_right = 200.0
-offset_bottom = 200.0
+offset_bottom = 260.0
 
 [node name="Margin" type="MarginContainer" parent="Root/MainPanel"]
 theme_override_constants/margin_left = 24
@@ -64,6 +64,16 @@ custom_minimum_size = Vector2(0, 44)
 text = "Achievements"
 theme_override_font_sizes/font_size = 18
 
+[node name="BestiaryButton" type="Button" parent="Root/MainPanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 44)
+text = "Bestiary"
+theme_override_font_sizes/font_size = 18
+
+[node name="MercenaryButton" type="Button" parent="Root/MainPanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 44)
+text = "Mercenary"
+theme_override_font_sizes/font_size = 18
+
 [node name="QuitHubButton" type="Button" parent="Root/MainPanel/Margin/VBox"]
 custom_minimum_size = Vector2(0, 44)
 text = "Quit to Hub"
@@ -82,9 +92,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -260.0
-offset_top = -320.0
+offset_top = -360.0
 offset_right = 260.0
-offset_bottom = 320.0
+offset_bottom = 360.0
 
 [node name="Margin" type="MarginContainer" parent="Root/SettingsPanel"]
 theme_override_constants/margin_left = 24
@@ -163,6 +173,20 @@ size_flags_vertical = 4
 text = "50%"
 custom_minimum_size = Vector2(50, 0)
 horizontal_alignment = 2
+
+[node name="LootHeader" type="Label" parent="Root/SettingsPanel/Margin/VBox"]
+text = "Loot Filter"
+theme_override_font_sizes/font_size = 18
+modulate = Color(1, 0.85, 0.4, 1)
+
+[node name="LootHint" type="Label" parent="Root/SettingsPanel/Margin/VBox"]
+text = "Items below this rarity won't auto-pickup. Dim items in the world are filtered."
+theme_override_font_sizes/font_size = 11
+modulate = Color(0.65, 0.65, 0.7, 1)
+autowrap_mode = 3
+
+[node name="LootRow" type="HBoxContainer" parent="Root/SettingsPanel/Margin/VBox"]
+theme_override_constants/separation = 6
 
 [node name="ControlsHeader" type="Label" parent="Root/SettingsPanel/Margin/VBox"]
 text = "Controls"

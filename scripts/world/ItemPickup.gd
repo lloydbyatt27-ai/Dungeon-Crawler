@@ -46,6 +46,17 @@ func _apply_item_visuals() -> void:
 	if label:
 		label.text = item.display_name
 		label.modulate = color
+	# Dim items below the loot filter so they read as "ignored" in-world.
+	if _is_filtered_out():
+		mesh_instance.transparency = 0.45
+		if label:
+			label.modulate.a = 0.45
+
+
+func _is_filtered_out() -> bool:
+	if item == null:
+		return false
+	return int(item.rarity) < SaveSystem.loot_filter_min_rarity
 
 
 func _physics_process(delta: float) -> void:
@@ -69,6 +80,8 @@ func _on_body_entered(body: Node) -> void:
 	if _picked_up or item == null:
 		return
 	if body == null or not body.is_in_group("player"):
+		return
+	if _is_filtered_out():
 		return
 	if body.has_method("get_inventory"):
 		var inv = body.get_inventory()
