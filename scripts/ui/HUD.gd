@@ -19,6 +19,7 @@ extends CanvasLayer
 @onready var form_indicator: Label = $Root/FormIndicator
 @onready var death_overlay: ColorRect = $Root/DeathOverlay
 @onready var skill_bar: HBoxContainer = $Root/SkillBar
+@onready var potion_belt: HBoxContainer = $Root/PotionBelt
 
 var _essence_pulse_t: float = 0.0
 
@@ -27,6 +28,7 @@ var _player_health: Health
 var _last_health: float = 0.0
 var _flash_tween: Tween
 var _skill_slot_nodes: Array = []  # array of {bg, fill, name_label, cd_label, key_label}
+var _belt_slot_nodes: Array = []   # one Panel per slot, with a label child
 
 
 func _ready() -> void:
@@ -37,6 +39,8 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_bind_to_player()
 	_build_skill_slots()
+	_build_belt_slots()
+	_refresh_belt()
 	EventBus.player_gold_changed.connect(_on_gold_changed)
 	EventBus.player_shards_changed.connect(_on_shards_changed)
 	EventBus.player_shapeshifted.connect(_on_shapeshifted)
@@ -50,6 +54,11 @@ func _apply_difficulty_badge() -> void:
 	var data: Dictionary = DifficultyDatabase.get_data(tier)
 	difficulty_badge.text = tier
 	difficulty_badge.add_theme_color_override("font_color", data.get("color", Color.WHITE))
+	# Append HC tag once we have a player reference. The bind happens in
+	# _bind_to_player; this re-runs there as well.
+	if _player and _player.stats and _player.stats.hardcore:
+		difficulty_badge.text = tier + "  ☠ HC"
+		difficulty_badge.add_theme_color_override("font_color", Color(1, 0.35, 0.35))
 	# Floor indicator (visible only in endless mode)
 	if SaveSystem.endless_mode:
 		floor_label.text = "Floor %d" % SaveSystem.current_endless_floor
@@ -69,6 +78,57 @@ func _bind_to_player() -> void:
 		_player_health.died.connect(_on_player_died)
 		_last_health = _player_health.current_health
 		_on_health_changed(_player_health.current_health, _player_health.max_health)
+	if _player.inventory:
+		_player.inventory.belt_changed.connect(_refresh_belt)
+	# Now that we have a player + stats, re-apply the difficulty badge so the
+	# Hardcore tag appears.
+	_apply_difficulty_badge()
+
+
+# --- Potion belt --------------------------------------------------
+
+func _build_belt_slots() -> void:
+	for c in potion_belt.get_children():
+		c.queue_free()
+	_belt_slot_nodes.clear()
+	for i in range(Inventory.POTION_BELT_SIZE):
+		var slot := Panel.new()
+		slot.custom_minimum_size = Vector2(46, 46)
+		var content_label := Label.new()
+		content_label.name = "Content"
+		content_label.text = "—"
+		content_label.add_theme_font_size_override("font_size", 22)
+		content_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		content_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		content_label.anchor_right = 1.0
+		content_label.anchor_bottom = 1.0
+		content_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_child(content_label)
+		var key_label := Label.new()
+		key_label.name = "Key"
+		key_label.text = str(i + 1)
+		key_label.add_theme_font_size_override("font_size", 11)
+		key_label.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
+		key_label.position = Vector2(3, 2)
+		key_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_child(key_label)
+		potion_belt.add_child(slot)
+		_belt_slot_nodes.append({"panel": slot, "content": content_label})
+
+
+func _refresh_belt() -> void:
+	if _player == null or _player.inventory == null:
+		return
+	for i in range(_belt_slot_nodes.size()):
+		var potion: Item = _player.inventory.potion_belt[i]
+		var nodes: Dictionary = _belt_slot_nodes[i]
+		var content: Label = nodes.content
+		if potion == null:
+			content.text = "—"
+			content.modulate = Color(0.4, 0.4, 0.4)
+		else:
+			content.text = "♥" if potion.potion_effect == "heal" else "✦"
+			content.modulate = Color(1, 0.45, 0.45) if potion.potion_effect == "heal" else Color(0.55, 0.7, 1)
 
 
 func _build_skill_slots() -> void:
@@ -180,9 +240,17 @@ func _flash_hp_bar() -> void:
 func _on_player_died() -> void:
 	death_overlay.visible = true
 	GameState.run_stats.deaths += 1
+	# Hardcore: wipe save and stay on the death screen longer so the
+	# player processes the permadeath message.
+	var is_hardcore: bool = _player and _player.stats and _player.stats.hardcore
+	if is_hardcore:
+		SaveSystem.delete_save()
+		var death_label := death_overlay.get_node_or_null("DeathLabel") as Label
+		if death_label:
+			death_label.text = "PERMADEATH"
 	var tween := create_tween()
 	tween.tween_property(death_overlay, "modulate:a", 1.0, 0.8)
-	tween.tween_interval(1.5)
+	tween.tween_interval(2.5 if is_hardcore else 1.5)
 	tween.tween_callback(_to_main_menu)
 
 

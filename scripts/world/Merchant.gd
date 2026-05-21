@@ -6,6 +6,9 @@ extends StaticBody3D
 @export var stock_size: int = 8
 @export var item_level: int = 1
 @export var item_filter: Array = []  # e.g. ["WEAPON"] or ["ARMOR", "OFFHAND"]
+# "items" = randomly-rolled gear via ItemDatabase.generate_random_item.
+# "potions" = the Alchemist's fixed potion catalog.
+@export var stock_kind: String = "items"
 
 @onready var prompt_label: Label3D = $PromptLabel
 @onready var name_label: Label3D = $NameLabel
@@ -27,6 +30,13 @@ func _ready() -> void:
 
 func refresh_stock() -> void:
 	stock.clear()
+	if stock_kind == "potions":
+		# Fixed catalog — the alchemist always carries one of each potion.
+		for id in ItemDatabase.POTION_IDS:
+			var p := ItemDatabase.create_by_id(id)
+			if p:
+				stock.append(p)
+		return
 	for _i in range(stock_size):
 		var item := ItemDatabase.generate_random_item(item_level, item_filter)
 		if item:

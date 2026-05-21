@@ -5,9 +5,11 @@ extends Node
 
 signal items_changed
 signal equipment_changed(slot: String, item)
+signal belt_changed
 
 const MAX_INVENTORY_SIZE: int = 24
 const SLOTS: Array = ["weapon", "offhand", "armor", "helmet", "gloves", "boots"]
+const POTION_BELT_SIZE: int = 4
 
 var items: Array[Item] = []
 var equipment: Dictionary = {
@@ -18,6 +20,9 @@ var equipment: Dictionary = {
 	"gloves": null,
 	"boots": null,
 }
+
+# 4-slot potion belt (1-4 hotkeys). Each entry is either an Item or null.
+var potion_belt: Array = [null, null, null, null]
 
 var _player: PlayerController
 
@@ -83,6 +88,74 @@ func unequip(slot: String) -> bool:
 	return true
 
 
+# --- Potion belt ----------------------------------------------------
+
+## Move a potion from the backpack into the first free belt slot.
+## Returns the belt index, or -1 if there was no room.
+func belt_assign(item: Item) -> int:
+	if item == null or not item.is_potion():
+		return -1
+	if not items.has(item):
+		return -1
+	for i in range(POTION_BELT_SIZE):
+		if potion_belt[i] == null:
+			potion_belt[i] = item
+			items.erase(item)
+			belt_changed.emit()
+			items_changed.emit()
+			return i
+	return -1
+
+
+## Move a belt potion back to the backpack (or drop it if there's no room).
+func belt_take(slot: int) -> bool:
+	if slot < 0 or slot >= POTION_BELT_SIZE:
+		return false
+	var item: Item = potion_belt[slot]
+	if item == null:
+		return false
+	if items.size() >= MAX_INVENTORY_SIZE:
+		return false
+	potion_belt[slot] = null
+	items.append(item)
+	belt_changed.emit()
+	items_changed.emit()
+	return true
+
+
+## Consume the potion in the given belt slot, applying its effect to the
+## player. Returns true if a potion was actually used (slot non-empty and
+## the resource it heals wasn't already at maximum).
+func use_belt_potion(slot: int) -> bool:
+	if slot < 0 or slot >= POTION_BELT_SIZE:
+		return false
+	var potion: Item = potion_belt[slot]
+	if potion == null or _player == null:
+		return false
+	var applied: bool = false
+	match potion.potion_effect:
+		"heal":
+			if _player.health and _player.health.current_health < _player.health.max_health:
+				_player.health.heal(potion.potion_value)
+				applied = true
+		"mana":
+			if _player.stats and _player.current_mana < _player.stats.max_mana():
+				_player.current_mana = min(_player.stats.max_mana(),
+					_player.current_mana + potion.potion_value)
+				applied = true
+	if not applied:
+		return false
+	potion_belt[slot] = null
+	belt_changed.emit()
+	items_changed.emit()
+	EventBus.show_floating_text.emit(
+		"+%d %s" % [int(potion.potion_value), "HP" if potion.potion_effect == "heal" else "Mana"],
+		_player.global_position + Vector3(0, 2.1, 0),
+		Color(0.55, 1.0, 0.55) if potion.potion_effect == "heal" else Color(0.5, 0.7, 1.0)
+	)
+	return true
+
+
 # --- Gold -----------------------------------------------------------
 
 func add_gold(amount: int) -> void:
@@ -114,9 +187,9 @@ const SHARD_BY_RARITY: Dictionary = {
 
 
 ## Sell an inventory item to a vendor for gold (= item.sell_value).
-## Returns the gold gained, or 0 on failure.
+## Returns the gold gained, or 0 on failure (also fails if the item is pinned).
 func sell_item(item: Item) -> int:
-	if not items.has(item):
+	if not items.has(item) or item.pinned:
 		return 0
 	var gold_gained: int = max(1, item.sell_value)
 	items.erase(item)
@@ -127,9 +200,9 @@ func sell_item(item: Item) -> int:
 
 
 ## Salvage an inventory item into Soul Shards (count depends on rarity).
-## Returns the shards gained, or 0 on failure.
+## Returns the shards gained, or 0 on failure (also fails if the item is pinned).
 func salvage_item(item: Item) -> int:
-	if not items.has(item):
+	if not items.has(item) or item.pinned:
 		return 0
 	var shards: int = SHARD_BY_RARITY.get(item.rarity, 1)
 	items.erase(item)
@@ -172,6 +245,11 @@ func _refresh_stats() -> void:
 		s.bonus_armor += item.armor
 		s.bonus_crit_chance += item.crit_chance_bonus
 		s.bonus_crit_damage += item.crit_damage_bonus
+	# Apply set bonuses (counted from currently-equipped pieces)
+	var equipped_list: Array = []
+	for slot in equipment:
+		equipped_list.append(equipment[slot])
+	SetDatabase.apply_to_stats(s, equipped_list)
 	# Push updated maxes onto runtime resources
 	if _player.health:
 		_player.health.set_max_health(s.max_hp(), false)

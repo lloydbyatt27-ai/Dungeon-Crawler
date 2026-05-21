@@ -19,6 +19,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/QuestLogUI.tscn" id="17_questlog"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ToastNotificationUI.tscn" id="18_toast"]
 [ext_resource type="PackedScene" path="res://scenes/ui/TutorialOverlay.tscn" id="19_tutorial"]
+[ext_resource type="PackedScene" path="res://scenes/ui/SkillsUI.tscn" id="20_skills"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
 size = Vector2(28, 28)
@@ -124,6 +125,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, 0)
 merchant_name = "Weaponsmith"
 item_filter = ["WEAPON"]
 
+[node name="Alchemist" parent="." instance=ExtResource("8_merchant")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5)
+merchant_name = "Alchemist"
+stock_kind = "potions"
+
 [node name="Forge" parent="." instance=ExtResource("10_forge")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 8)
 
@@ -166,6 +172,12 @@ light_color = Color(1, 0.85, 0.6, 1)
 light_energy = 1.0
 omni_range = 8.0
 
+[node name="AlchemistLight" type="OmniLight3D" parent="Lighting"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -5)
+light_color = Color(0.6, 1.0, 0.65, 1)
+light_energy = 1.1
+omni_range = 7.5
+
 [node name="ForgeLight" type="OmniLight3D" parent="Lighting"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 8)
 light_color = Color(1, 0.55, 0.2, 1)
@@ -195,6 +207,8 @@ damage_number_scene = ExtResource("5_dmgnum")
 [node name="ToastNotificationUI" parent="." instance=ExtResource("18_toast")]
 
 [node name="TutorialOverlay" parent="." instance=ExtResource("19_tutorial")]
+
+[node name="SkillsUI" parent="." instance=ExtResource("20_skills")]
 
 [node name="PauseMenu" parent="." instance=ExtResource("12_pause")]
 show_quit_to_hub = false

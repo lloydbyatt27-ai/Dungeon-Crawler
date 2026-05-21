@@ -71,6 +71,15 @@ modulate = Color(0.75, 0.75, 0.75, 1)
 custom_minimum_size = Vector2(0, 60)
 theme_override_constants/separation = 8
 
+[node name="BeltHeader" type="Label" parent="Root/Panel/Margin/VBox"]
+text = "Potion Belt   (Hotkeys 1-4)"
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.75, 0.75, 0.75, 1)
+
+[node name="BeltBox" type="HBoxContainer" parent="Root/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 50)
+theme_override_constants/separation = 8
+
 [node name="InventoryHeader" type="Label" parent="Root/Panel/Margin/VBox"]
 text = "Backpack"
 theme_override_font_sizes/font_size = 14
