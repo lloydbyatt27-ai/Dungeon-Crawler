@@ -1,0 +1,75 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/SkillLoadoutUI.gd" id="1_loadout"]
+
+[node name="SkillLoadoutUI" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_loadout")
+
+[node name="Dim" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.6)
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -340.0
+offset_top = -240.0
+offset_right = 340.0
+offset_bottom = 240.0
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="VBox" type="VBoxContainer" parent="Panel/Margin"]
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox"]
+text = "Skill Loadout"
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(1, 0.78, 0.35, 1)
+
+[node name="Hint" type="Label" parent="Panel/Margin/VBox"]
+text = "Click a slot to select, then pick a skill from the pool."
+theme_override_font_sizes/font_size = 12
+modulate = Color(0.7, 0.7, 0.75, 1)
+
+[node name="SlotHeader" type="Label" parent="Panel/Margin/VBox"]
+text = "Active (Q / E / R)"
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.85, 0.85, 0.55, 1)
+
+[node name="SlotRow" type="HBoxContainer" parent="Panel/Margin/VBox"]
+theme_override_constants/separation = 10
+
+[node name="PoolHeader" type="Label" parent="Panel/Margin/VBox"]
+text = "Available skills"
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.85, 0.85, 0.55, 1)
+
+[node name="PoolRow" type="HBoxContainer" parent="Panel/Margin/VBox"]
+theme_override_constants/separation = 6
+
+[node name="Description" type="RichTextLabel" parent="Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 80)
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+
+[node name="Spacer" type="Control" parent="Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 4)
+
+[node name="CloseButton" type="Button" parent="Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 36)
+text = "Close (Esc)"

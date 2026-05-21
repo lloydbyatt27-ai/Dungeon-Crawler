@@ -43,6 +43,11 @@ const MAX_SKILL_RANK: int = 3
 # save file and returns to the main menu.
 @export var hardcore: bool = false
 
+# Player's chosen 3 active skills. Empty array means "use class defaults".
+# Populated when the player visits the Skill Trainer and rearranges their
+# loadout, or via the first sync in PlayerController on a fresh character.
+@export var active_skill_ids: Array[String] = []
+
 # Equipment bonuses — set by Inventory whenever items are equipped/unequipped.
 # Not exported; recomputed at runtime from the current loadout.
 var bonus_strength: int = 0

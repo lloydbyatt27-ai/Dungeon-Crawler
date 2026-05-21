@@ -42,6 +42,14 @@ var current_run_difficulty: String = "Normal"  # active during a run
 # when the player walks over them. 0 = pick up everything.
 var loot_filter_min_rarity: int = 0
 
+# Classes the player has unlocked across all characters. Guardian and
+# Mercenary are the starter pool; the other three unlock via milestones
+# defined in ClassDatabase (`unlock` field).
+var unlocked_classes: Array = ["Guardian", "Mercenary"]
+# Total dungeon runs completed across all characters (drives the Scout
+# unlock). Persisted in meta.json.
+var meta_dungeons_completed: int = 0
+
 # Cross-character stash, organized into named tabs. Persisted to
 # user://stash.json as {"tabs": [[entry, ...], ...]} or — for backward
 # compatibility with single-tab saves from W24 — a top-level Array.
@@ -73,6 +81,52 @@ func _ready() -> void:
 	_init_stash_tabs()
 	_load_meta()
 	_load_stash()
+	EventBus.boss_defeated.connect(_check_boss_unlock)
+	EventBus.player_leveled_up.connect(_check_level_unlock)
+	EventBus.dungeon_completed.connect(_on_dungeon_completed)
+
+
+func unlock_class(class_id: String) -> bool:
+	if class_id in unlocked_classes:
+		return false
+	unlocked_classes.append(class_id)
+	_save_meta()
+	EventBus.show_floating_text.emit(
+		"Class unlocked: %s" % class_id,
+		Vector3.ZERO,
+		Color(1, 0.78, 0.35)
+	)
+	return true
+
+
+func _check_boss_unlock(_boss: Node) -> void:
+	for cid in ClassDatabase.CLASSES:
+		var data: Dictionary = ClassDatabase.CLASSES[cid]
+		var unlock = data.get("unlock", {})
+		if unlock.get("kind", "") == "boss" and not (cid in unlocked_classes):
+			unlock_class(cid)
+
+
+func _check_level_unlock(new_level: int) -> void:
+	for cid in ClassDatabase.CLASSES:
+		var data: Dictionary = ClassDatabase.CLASSES[cid]
+		var unlock = data.get("unlock", {})
+		if unlock.get("kind", "") == "level" \
+				and new_level >= int(unlock.get("value", 999)) \
+				and not (cid in unlocked_classes):
+			unlock_class(cid)
+
+
+func _on_dungeon_completed(_zone_id: String) -> void:
+	meta_dungeons_completed += 1
+	for cid in ClassDatabase.CLASSES:
+		var data: Dictionary = ClassDatabase.CLASSES[cid]
+		var unlock = data.get("unlock", {})
+		if unlock.get("kind", "") == "dungeons" \
+				and meta_dungeons_completed >= int(unlock.get("value", 999)) \
+				and not (cid in unlocked_classes):
+			unlock_class(cid)
+	_save_meta()
 
 
 func _init_stash_tabs() -> void:
@@ -97,12 +151,21 @@ func _load_meta() -> void:
 		if not "Normal" in unlocked_difficulties:
 			unlocked_difficulties.append("Normal")
 		loot_filter_min_rarity = int(parsed.get("loot_filter_min_rarity", 0))
+		var uc = parsed.get("unlocked_classes", ["Guardian", "Mercenary"])
+		if uc is Array:
+			unlocked_classes = uc
+		# Migrate forward — starter classes always present
+		if not "Guardian" in unlocked_classes: unlocked_classes.append("Guardian")
+		if not "Mercenary" in unlocked_classes: unlocked_classes.append("Mercenary")
+		meta_dungeons_completed = int(parsed.get("meta_dungeons_completed", 0))
 
 
 func _save_meta() -> void:
 	var data := {
 		"unlocked_difficulties": unlocked_difficulties,
 		"loot_filter_min_rarity": loot_filter_min_rarity,
+		"unlocked_classes": unlocked_classes,
+		"meta_dungeons_completed": meta_dungeons_completed,
 	}
 	var f := FileAccess.open(META_PATH, FileAccess.WRITE)
 	if f == null:
@@ -323,6 +386,7 @@ func _serialize_player(player: PlayerController) -> Dictionary:
 			"completed_quest_ids": s.completed_quest_ids,
 			"skill_ranks": s.skill_ranks,
 			"hardcore": s.hardcore,
+			"active_skill_ids": s.active_skill_ids,
 		},
 		"active_quests": QuestSystem.serialize(),
 		"runtime": {
@@ -350,6 +414,12 @@ func _serialize_player(player: PlayerController) -> Dictionary:
 				data.potion_belt.append(_save_entry_for(belt_item))
 			else:
 				data.potion_belt.append("")
+		data["glyph_slots"] = []
+		for g in inv.glyph_slots:
+			if g:
+				data.glyph_slots.append(_save_entry_for(g))
+			else:
+				data.glyph_slots.append("")
 	return data
 
 
@@ -378,6 +448,11 @@ func _deserialize_into_player(player: PlayerController, data: Dictionary) -> voi
 	else:
 		s.skill_ranks = {}
 	s.hardcore = bool(sd.get("hardcore", false))
+	var ask = sd.get("active_skill_ids", [])
+	s.active_skill_ids.clear()
+	if ask is Array:
+		for sid in ask:
+			s.active_skill_ids.append(String(sid))
 	# Quest completion record
 	var cq_raw = sd.get("completed_quest_ids", [])
 	if cq_raw is Array:
@@ -417,6 +492,15 @@ func _deserialize_into_player(player: PlayerController, data: Dictionary) -> voi
 				var belt_item := _item_from_save_entry(belt_data[i])
 				inv.potion_belt[i] = belt_item
 		inv.belt_changed.emit()
+		# Glyph slots — restore alongside the belt
+		for i in range(Inventory.GLYPH_SLOT_COUNT):
+			inv.glyph_slots[i] = null
+		var glyph_data = data.get("glyph_slots", [])
+		if glyph_data is Array:
+			for i in range(min(glyph_data.size(), Inventory.GLYPH_SLOT_COUNT)):
+				var g_item := _item_from_save_entry(glyph_data[i])
+				inv.glyph_slots[i] = g_item
+		inv.glyphs_changed.emit()
 		inv._refresh_stats()
 		inv.items_changed.emit()
 

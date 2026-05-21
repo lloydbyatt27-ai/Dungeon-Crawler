@@ -13,6 +13,7 @@ extends CanvasLayer
 @onready var achievements_button: Button = $Root/MainPanel/Margin/VBox/AchievementsButton
 @onready var bestiary_button: Button = $Root/MainPanel/Margin/VBox/BestiaryButton
 @onready var mercenary_button: Button = $Root/MainPanel/Margin/VBox/MercenaryButton
+@onready var loadout_button: Button = $Root/MainPanel/Margin/VBox/LoadoutButton
 @onready var quit_hub_button: Button = $Root/MainPanel/Margin/VBox/QuitHubButton
 @onready var quit_menu_button: Button = $Root/MainPanel/Margin/VBox/QuitMenuButton
 
@@ -51,6 +52,7 @@ func _ready() -> void:
 	achievements_button.pressed.connect(_show_achievements)
 	bestiary_button.pressed.connect(_show_bestiary)
 	mercenary_button.pressed.connect(_show_mercenary)
+	loadout_button.pressed.connect(_show_loadout)
 	quit_hub_button.pressed.connect(_quit_to_hub)
 	quit_menu_button.pressed.connect(_quit_to_menu)
 	back_button.pressed.connect(_show_main)
@@ -107,6 +109,11 @@ func _show_bestiary() -> void:
 		bes_ui.open()
 
 
+func _show_loadout() -> void:
+	var ui = preload("res://scenes/ui/SkillLoadoutUI.tscn").instantiate()
+	add_child(ui)
+
+
 # --- Mercenary hire / dismiss ---------------------------------
 
 var _merc_popup: PanelContainer = null
@@ -140,7 +147,13 @@ func _show_mercenary() -> void:
 
 	var subtitle := Label.new()
 	if MercenarySystem.has_active_merc():
-		subtitle.text = "Hired: %s" % MercenarySystem.current_data().get("display_name", "?")
+		var lv := MercenarySystem.level
+		var xp_now := MercenarySystem.xp
+		var xp_next := MercenarySystem.xp_for_next()
+		subtitle.text = "Hired: %s   ·   Lv %d   ·   %d / %d XP" % [
+			MercenarySystem.current_data().get("display_name", "?"),
+			lv, xp_now, xp_next
+		]
 		subtitle.add_theme_color_override("font_color", Color(0.55, 0.85, 0.45))
 	else:
 		subtitle.text = "No companion hired."

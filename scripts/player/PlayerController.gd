@@ -127,8 +127,15 @@ func _apply_class_visuals_and_skills() -> void:
 	class_mat.roughness = 0.55
 	body_mesh.set_surface_override_material(0, class_mat)
 	_body_default_material = class_mat
-	# Active skills
-	var skills: Array = class_data.get("starter_skills", ["earthquake", "warcry", "frostbite"])
+	# Active skills — prefer the character's saved loadout, fall back to
+	# the class's starter set. Mirror the result back onto stats so the
+	# Skill Trainer always has a known starting point to edit from.
+	var skills: Array = stats.active_skill_ids
+	if skills.is_empty():
+		skills = class_data.get("starter_skills", ["earthquake", "warcry", "frostbite"])
+		stats.active_skill_ids.clear()
+		for s in skills:
+			stats.active_skill_ids.append(String(s))
 	if skill_system:
 		skill_system.set_active_skills(skills)
 
