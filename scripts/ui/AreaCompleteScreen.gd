@@ -36,9 +36,27 @@ func _show() -> void:
 	var seconds: float = GameState.run_delta("play_time_seconds")
 	time_label.text = "%d:%02d" % [int(seconds / 60.0), int(seconds) % 60]
 
-	# Endless vs normal flow
+	# Endless / Rift / normal flow
 	var players := get_tree().get_nodes_in_group("player")
-	if SaveSystem.endless_mode:
+	if SaveSystem.rift_active:
+		# Did the player beat the timer?
+		var in_time: bool = SaveSystem.rift_time_remaining > 0.0
+		if in_time:
+			title_label.text = "RIFT T%d CLEARED" % SaveSystem.rift_tier
+			if SaveSystem.rift_tier > SaveSystem.rift_best_tier:
+				SaveSystem.rift_best_tier = SaveSystem.rift_tier
+				SaveSystem._save_meta()
+				EventBus.show_floating_text.emit(
+					"NEW RIFT RECORD: T%d" % SaveSystem.rift_tier,
+					players[0].global_position + Vector3(0, 3.5, 0) if not players.is_empty() else Vector3.ZERO,
+					Color(1, 0.78, 0.35)
+				)
+		else:
+			title_label.text = "RIFT T%d — TIME EXPIRED" % SaveSystem.rift_tier
+		continue_button.text = "Return to Hub"
+		# Rift always returns to hub regardless of outcome.
+		SaveSystem.rift_active = false
+	elif SaveSystem.endless_mode:
 		title_label.text = "FLOOR %d CLEARED" % SaveSystem.current_endless_floor
 		continue_button.text = "Descend to Floor %d" % (SaveSystem.current_endless_floor + 1)
 		# Update the player's best record

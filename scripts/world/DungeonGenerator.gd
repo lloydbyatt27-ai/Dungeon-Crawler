@@ -525,6 +525,23 @@ func _apply_difficulty(enemy: Node) -> void:
 		enemy.essence_value *= float(data.get("essence_mult", 1.0))
 	if "item_drop_chance" in enemy:
 		enemy.item_drop_chance = min(1.0, float(enemy.item_drop_chance) + float(data.get("item_drop_bonus", 0.0)))
+	# Greater Rift: tier T multiplies enemy HP by 1.20^T and damage by
+	# 1.10^T. xp scales 1.15^T so clearing a rift advances paragon fast.
+	if SaveSystem.rift_active:
+		var t: int = max(1, SaveSystem.rift_tier)
+		var hp_t: float = pow(1.20, t)
+		var dmg_t: float = pow(1.10, t)
+		var xp_t: float = pow(1.15, t)
+		var hp_node2 := enemy.get_node_or_null("Health") as Health
+		if hp_node2:
+			hp_node2.max_health *= hp_t
+			hp_node2.current_health = hp_node2.max_health
+			hp_node2.health_changed.emit(hp_node2.current_health, hp_node2.max_health)
+		if "attack_damage" in enemy:
+			enemy.attack_damage *= dmg_t
+		if "xp_value" in enemy:
+			enemy.xp_value = int(float(enemy.xp_value) * xp_t)
+
 	# Active run modifiers stack multiplicatively on top of difficulty.
 	var mods: Array = SaveSystem.active_modifiers
 	var item_mod: float = DifficultyModifierDatabase.combined_mult(mods, "item_drop_mult")
