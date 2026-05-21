@@ -138,6 +138,14 @@ func use_belt_potion(slot: int) -> bool:
 	var potion: Item = potion_belt[slot]
 	if potion == null or _player == null:
 		return false
+	# Dry Run modifier: potions are disabled entirely
+	if DifficultyModifierDatabase.any_flag(SaveSystem.active_modifiers, "disable_potions"):
+		EventBus.show_floating_text.emit(
+			"Potions disabled",
+			_player.global_position + Vector3(0, 2.0, 0),
+			Color(1, 0.5, 0.5)
+		)
+		return false
 	var applied: bool = false
 	match potion.potion_effect:
 		"heal":

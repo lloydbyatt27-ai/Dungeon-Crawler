@@ -50,6 +50,10 @@ var unlocked_classes: Array = ["Guardian", "Mercenary"]
 # unlock). Persisted in meta.json.
 var meta_dungeons_completed: int = 0
 
+# Active run modifiers chosen via the Modifiers panel in PauseMenu.
+# Persisted in meta.json so the choice survives session restarts.
+var active_modifiers: Array = []
+
 # Cross-character stash, organized into named tabs. Persisted to
 # user://stash.json as {"tabs": [[entry, ...], ...]} or — for backward
 # compatibility with single-tab saves from W24 — a top-level Array.
@@ -158,6 +162,9 @@ func _load_meta() -> void:
 		if not "Guardian" in unlocked_classes: unlocked_classes.append("Guardian")
 		if not "Mercenary" in unlocked_classes: unlocked_classes.append("Mercenary")
 		meta_dungeons_completed = int(parsed.get("meta_dungeons_completed", 0))
+		var mods = parsed.get("active_modifiers", [])
+		if mods is Array:
+			active_modifiers = mods
 
 
 func _save_meta() -> void:
@@ -166,6 +173,7 @@ func _save_meta() -> void:
 		"loot_filter_min_rarity": loot_filter_min_rarity,
 		"unlocked_classes": unlocked_classes,
 		"meta_dungeons_completed": meta_dungeons_completed,
+		"active_modifiers": active_modifiers,
 	}
 	var f := FileAccess.open(META_PATH, FileAccess.WRITE)
 	if f == null:
@@ -177,6 +185,21 @@ func _save_meta() -> void:
 
 func set_loot_filter(min_rarity: int) -> void:
 	loot_filter_min_rarity = clamp(min_rarity, 0, 4)
+	_save_meta()
+
+
+func toggle_modifier(id: String) -> bool:
+	if id in active_modifiers:
+		active_modifiers.erase(id)
+		_save_meta()
+		return false
+	active_modifiers.append(id)
+	_save_meta()
+	return true
+
+
+func clear_modifiers() -> void:
+	active_modifiers.clear()
 	_save_meta()
 
 

@@ -14,6 +14,8 @@ extends CanvasLayer
 @onready var bestiary_button: Button = $Root/MainPanel/Margin/VBox/BestiaryButton
 @onready var mercenary_button: Button = $Root/MainPanel/Margin/VBox/MercenaryButton
 @onready var loadout_button: Button = $Root/MainPanel/Margin/VBox/LoadoutButton
+@onready var modifiers_button: Button = $Root/MainPanel/Margin/VBox/ModifiersButton
+@onready var run_history_button: Button = $Root/MainPanel/Margin/VBox/RunHistoryButton
 @onready var quit_hub_button: Button = $Root/MainPanel/Margin/VBox/QuitHubButton
 @onready var quit_menu_button: Button = $Root/MainPanel/Margin/VBox/QuitMenuButton
 
@@ -53,6 +55,8 @@ func _ready() -> void:
 	bestiary_button.pressed.connect(_show_bestiary)
 	mercenary_button.pressed.connect(_show_mercenary)
 	loadout_button.pressed.connect(_show_loadout)
+	modifiers_button.pressed.connect(_show_modifiers)
+	run_history_button.pressed.connect(_show_run_history)
 	quit_hub_button.pressed.connect(_quit_to_hub)
 	quit_menu_button.pressed.connect(_quit_to_menu)
 	back_button.pressed.connect(_show_main)
@@ -114,6 +118,91 @@ func _show_loadout() -> void:
 	add_child(ui)
 
 
+func _show_run_history() -> void:
+	var ui = preload("res://scenes/ui/RunHistoryUI.tscn").instantiate()
+	add_child(ui)
+
+
+# --- Run modifiers picker ----------------------------------------
+
+var _mod_popup: PanelContainer = null
+
+
+func _show_modifiers() -> void:
+	if _mod_popup:
+		_mod_popup.queue_free()
+		_mod_popup = null
+	_mod_popup = PanelContainer.new()
+	_mod_popup.set_anchors_preset(Control.PRESET_CENTER)
+	_mod_popup.custom_minimum_size = Vector2(440, 0)
+	_mod_popup.position = Vector2(-220, -240)
+	root.add_child(_mod_popup)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 18)
+	margin.add_theme_constant_override("margin_right", 18)
+	margin.add_theme_constant_override("margin_top", 14)
+	margin.add_theme_constant_override("margin_bottom", 14)
+	_mod_popup.add_child(margin)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	margin.add_child(vbox)
+
+	var title := Label.new()
+	title.text = "Run Modifiers"
+	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_color_override("font_color", Color(1, 0.78, 0.35))
+	vbox.add_child(title)
+
+	var hint := Label.new()
+	hint.text = "Opt-in challenges. Effects stack. Applied to all subsequent dungeons until cleared."
+	hint.add_theme_font_size_override("font_size", 11)
+	hint.add_theme_color_override("font_color", Color(0.65, 0.65, 0.7))
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(hint)
+
+	for mod_id in DifficultyModifierDatabase.all_ids():
+		var data: Dictionary = DifficultyModifierDatabase.get_modifier(mod_id)
+		var active: bool = mod_id in SaveSystem.active_modifiers
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(0, 44)
+		btn.text = "%s%s\n%s" % ["✓ " if active else "  ", data.name, data.desc]
+		btn.add_theme_color_override("font_color", data.color if active else Color(0.85, 0.85, 0.9))
+		btn.add_theme_font_size_override("font_size", 12)
+		btn.pressed.connect(_toggle_modifier.bind(mod_id))
+		vbox.add_child(btn)
+
+	var clear := Button.new()
+	clear.text = "Clear All"
+	clear.custom_minimum_size = Vector2(0, 28)
+	clear.pressed.connect(_clear_modifiers)
+	vbox.add_child(clear)
+
+	var close := Button.new()
+	close.text = "Close"
+	close.custom_minimum_size = Vector2(0, 28)
+	close.pressed.connect(_close_mod_popup)
+	vbox.add_child(close)
+
+
+func _toggle_modifier(id: String) -> void:
+	SaveSystem.toggle_modifier(id)
+	_close_mod_popup()
+	_show_modifiers()
+
+
+func _clear_modifiers() -> void:
+	SaveSystem.clear_modifiers()
+	_close_mod_popup()
+	_show_modifiers()
+
+
+func _close_mod_popup() -> void:
+	if _mod_popup:
+		_mod_popup.queue_free()
+		_mod_popup = null
+
+
 # --- Mercenary hire / dismiss ---------------------------------
 
 var _merc_popup: PanelContainer = null
@@ -150,9 +239,13 @@ func _show_mercenary() -> void:
 		var lv := MercenarySystem.level
 		var xp_now := MercenarySystem.xp
 		var xp_next := MercenarySystem.xp_for_next()
-		subtitle.text = "Hired: %s   ·   Lv %d   ·   %d / %d XP" % [
+		var spec_str := ""
+		var spec_data := MercenarySystem.current_spec_data()
+		if not spec_data.is_empty():
+			spec_str = "   ·   %s" % spec_data.get("name", "")
+		subtitle.text = "Hired: %s   ·   Lv %d   ·   %d / %d XP%s" % [
 			MercenarySystem.current_data().get("display_name", "?"),
-			lv, xp_now, xp_next
+			lv, xp_now, xp_next, spec_str
 		]
 		subtitle.add_theme_color_override("font_color", Color(0.55, 0.85, 0.45))
 	else:
@@ -160,6 +253,24 @@ func _show_mercenary() -> void:
 		subtitle.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	subtitle.add_theme_font_size_override("font_size", 12)
 	vbox.add_child(subtitle)
+
+	# Specialization picker — only shows once unlocked and not yet chosen
+	if MercenarySystem.spec_unlocked() and MercenarySystem.specialization == "":
+		var spec_header := Label.new()
+		spec_header.text = "Choose a specialization (permanent)"
+		spec_header.add_theme_font_size_override("font_size", 13)
+		spec_header.add_theme_color_override("font_color", Color(1, 0.78, 0.35))
+		vbox.add_child(spec_header)
+		var merc_specs: Array = MercenarySystem.SPECIALIZATIONS.get(
+			_spec_root_id(MercenarySystem.current_type), []
+		)
+		for spec in merc_specs:
+			var spec_btn := Button.new()
+			spec_btn.custom_minimum_size = Vector2(0, 36)
+			spec_btn.text = "%s — %s" % [spec.name, spec.desc]
+			spec_btn.add_theme_font_size_override("font_size", 12)
+			spec_btn.pressed.connect(_pick_spec.bind(String(spec.id)))
+			vbox.add_child(spec_btn)
 
 	# Hire rows
 	var player_gold: int = 0
@@ -238,6 +349,24 @@ func _close_merc_popup() -> void:
 	if _merc_popup:
 		_merc_popup.queue_free()
 		_merc_popup = null
+
+
+## Map full merc type id ("warrior") to the spec table key — currently
+## identical, but kept as a function so future warrior_alt variants can
+## still share specs.
+func _spec_root_id(merc_type: String) -> String:
+	return merc_type
+
+
+func _pick_spec(spec_id: String) -> void:
+	if MercenarySystem.choose_spec(spec_id):
+		EventBus.show_floating_text.emit(
+			"Spec chosen: %s" % spec_id.capitalize(),
+			Vector3.ZERO,
+			Color(1, 0.78, 0.35)
+		)
+	_close_merc_popup()
+	_show_mercenary()
 
 
 func _show_main() -> void:

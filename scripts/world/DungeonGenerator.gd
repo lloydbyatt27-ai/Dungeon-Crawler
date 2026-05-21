@@ -364,8 +364,12 @@ func _populate_room(room: Dictionary) -> void:
 			Color(1, 0.3, 0.3)
 		)
 
-	# Regular enemies
+	# Regular enemies — pack-hunt modifier bumps the count
 	var n_enemies: int = spec.get("enemies", 0)
+	var pack_mult: float = DifficultyModifierDatabase.combined_mult(
+		SaveSystem.active_modifiers, "enemy_count_mult"
+	)
+	n_enemies = int(round(float(n_enemies) * pack_mult))
 	for j in range(n_enemies):
 		var enemy_scene := _pick_enemy_scene()
 		if enemy_scene == null:
@@ -521,6 +525,25 @@ func _apply_difficulty(enemy: Node) -> void:
 		enemy.essence_value *= float(data.get("essence_mult", 1.0))
 	if "item_drop_chance" in enemy:
 		enemy.item_drop_chance = min(1.0, float(enemy.item_drop_chance) + float(data.get("item_drop_bonus", 0.0)))
+	# Active run modifiers stack multiplicatively on top of difficulty.
+	var mods: Array = SaveSystem.active_modifiers
+	var item_mod: float = DifficultyModifierDatabase.combined_mult(mods, "item_drop_mult")
+	var gold_mod: float = DifficultyModifierDatabase.combined_mult(mods, "gold_mult")
+	var xp_mod: float = DifficultyModifierDatabase.combined_mult(mods, "xp_mult")
+	var atk_speed_mod: float = DifficultyModifierDatabase.combined_mult(mods, "enemy_attack_speed_mult")
+	if "item_drop_chance" in enemy and item_mod != 1.0:
+		enemy.item_drop_chance = clamp(float(enemy.item_drop_chance) * item_mod, 0.0, 1.0)
+	if "gold_min" in enemy and "gold_max" in enemy and gold_mod != 1.0:
+		enemy.gold_min = int(float(enemy.gold_min) * gold_mod)
+		enemy.gold_max = int(float(enemy.gold_max) * gold_mod)
+	if "xp_value" in enemy and xp_mod != 1.0:
+		enemy.xp_value = int(float(enemy.xp_value) * xp_mod)
+	if "attack_cooldown" in enemy and atk_speed_mod != 1.0:
+		enemy.attack_cooldown = max(0.05, float(enemy.attack_cooldown) / atk_speed_mod)
+	# Instant-enrage modifier: bosses skip phase 1 entirely.
+	if "is_boss" in enemy and enemy.is_boss \
+			and DifficultyModifierDatabase.any_flag(mods, "instant_enrage"):
+		enemy.call_deferred("_enter_phase_2")
 
 
 func _pick_enemy_scene() -> PackedScene:
