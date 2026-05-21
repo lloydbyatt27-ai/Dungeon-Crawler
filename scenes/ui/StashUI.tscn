@@ -83,9 +83,12 @@ size_flags_horizontal = 3
 modulate = Color(0.95, 0.8, 0.45, 1)
 
 [node name="CountLabel" type="Label" parent="Root/Panel/Margin/VBox/Columns/StashCol/Header"]
-text = "0 / 50"
+text = "0 / 40"
 theme_override_font_sizes/font_size = 14
 modulate = Color(0.65, 0.65, 0.7, 1)
+
+[node name="TabRow" type="HBoxContainer" parent="Root/Panel/Margin/VBox/Columns/StashCol"]
+theme_override_constants/separation = 4
 
 [node name="Grid" type="VBoxContainer" parent="Root/Panel/Margin/VBox/Columns/StashCol"]
 theme_override_constants/separation = 4
