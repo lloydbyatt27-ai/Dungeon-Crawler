@@ -32,6 +32,17 @@ extends Resource
 # Quests already completed by this character (prevents repeats)
 @export var completed_quest_ids: Array[String] = []
 
+# Skill upgrade ranks (0..MAX_SKILL_RANK per skill_id). Spent via the
+# SkillsUI panel using `unspent_skill_points`. Each rank grants:
+#   damage skill (aoe/cone/projectile): +20% damage and -10% cooldown
+#   buff skill:                          +25% duration
+@export var skill_ranks: Dictionary = {}
+const MAX_SKILL_RANK: int = 3
+
+# Permadeath flag chosen at character creation. If true, death wipes the
+# save file and returns to the main menu.
+@export var hardcore: bool = false
+
 # Equipment bonuses — set by Inventory whenever items are equipped/unequipped.
 # Not exported; recomputed at runtime from the current loadout.
 var bonus_strength: int = 0
@@ -182,6 +193,22 @@ func _grant_attr(attr_name: String, amount: int) -> void:
 		"agility": agility += amount
 		"intelligence": intelligence += amount
 		"stamina": stamina += amount
+
+
+func skill_rank(skill_id: String) -> int:
+	return int(skill_ranks.get(skill_id, 0))
+
+
+## Returns true if a rank was successfully purchased.
+func invest_skill_point(skill_id: String) -> bool:
+	if unspent_skill_points <= 0:
+		return false
+	var cur := skill_rank(skill_id)
+	if cur >= MAX_SKILL_RANK:
+		return false
+	skill_ranks[skill_id] = cur + 1
+	unspent_skill_points -= 1
+	return true
 
 
 func xp_progress_ratio() -> float:

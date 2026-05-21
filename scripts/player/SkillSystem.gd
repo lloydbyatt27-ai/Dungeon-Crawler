@@ -208,26 +208,31 @@ func try_cast(skill_id: String) -> bool:
 	_player.current_mana -= mana_cost
 	var cdr: float = _player.stats.cooldown_reduction() if _player.stats else 0.0
 	var form_cd_mult: float = _player.shape_shift.skill_cooldown_mult() if _player.shape_shift else 1.0
-	cooldowns[skill_id] = def.cooldown * (1.0 - cdr) * form_cd_mult
+	# Skill rank: damage skills also reduce cooldown by 10% per rank.
+	var rank_cd_mult: float = 1.0
+	if def.type != "buff":
+		var rank: int = _player.stats.skill_rank(skill_id) if _player.stats else 0
+		rank_cd_mult = max(0.4, 1.0 - 0.10 * rank)
+	cooldowns[skill_id] = def.cooldown * (1.0 - cdr) * form_cd_mult * rank_cd_mult
 
 	var is_crit := false
 	if _player.stats:
 		is_crit = randf() < (_player.stats.crit_chance() + active_buff_amounts.get("crit_chance_bonus", 0.0))
 
 	match def.type:
-		"aoe":        _cast_aoe(def, is_crit)
-		"cone":       _cast_cone(def, is_crit)
-		"buff":       _cast_buff(def)
-		"projectile": _cast_projectile(def, is_crit)
+		"aoe":        _cast_aoe(def, skill_id, is_crit)
+		"cone":       _cast_cone(def, skill_id, is_crit)
+		"buff":       _cast_buff(def, skill_id)
+		"projectile": _cast_projectile(def, skill_id, is_crit)
 	EventBus.sfx_skill_cast.emit(skill_id)
 	return true
 
 
 # --- Cast implementations ------------------------------------------
 
-func _cast_aoe(def: Dictionary, is_crit: bool) -> void:
+func _cast_aoe(def: Dictionary, skill_id: String, is_crit: bool) -> void:
 	if aoe_scene == null: return
-	var dmg := _scaled_damage(def, is_crit)
+	var dmg := _scaled_damage(def, skill_id, is_crit)
 	var fx := aoe_scene.instantiate() as AoEEffect
 	get_tree().current_scene.add_child(fx)
 	fx.global_position = _player.global_position
@@ -235,9 +240,9 @@ func _cast_aoe(def: Dictionary, is_crit: bool) -> void:
 	fx.setup(dmg, is_crit, def.get("radius", -1.0), def.color)
 
 
-func _cast_cone(def: Dictionary, is_crit: bool) -> void:
+func _cast_cone(def: Dictionary, skill_id: String, is_crit: bool) -> void:
 	if cone_scene == null: return
-	var dmg := _scaled_damage(def, is_crit)
+	var dmg := _scaled_damage(def, skill_id, is_crit)
 	var fx := cone_scene.instantiate() as ConeEffect
 	get_tree().current_scene.add_child(fx)
 	fx.global_position = _player.global_position
@@ -246,10 +251,14 @@ func _cast_cone(def: Dictionary, is_crit: bool) -> void:
 	fx.setup(dmg, is_crit, def.color)
 
 
-func _cast_buff(def: Dictionary) -> void:
+func _cast_buff(def: Dictionary, skill_id: String) -> void:
 	var stat_name: String = def.buff_stat
 	var amount: float = def.buff_amount
 	var duration: float = def.duration
+	# Buff skills get +25% duration per rank.
+	if _player.stats:
+		var rank: int = _player.stats.skill_rank(skill_id)
+		duration *= (1.0 + 0.25 * rank)
 	active_buff_amounts[stat_name] = amount
 	active_buff_timers[stat_name] = duration
 	if buff_aura_scene:
@@ -267,9 +276,9 @@ func _cast_buff(def: Dictionary) -> void:
 	EventBus.show_floating_text.emit(def.display_name.to_upper() + "!", _player.global_position, def.color)
 
 
-func _cast_projectile(def: Dictionary, is_crit: bool) -> void:
+func _cast_projectile(def: Dictionary, skill_id: String, is_crit: bool) -> void:
 	if projectile_scene == null: return
-	var dmg := _scaled_damage(def, is_crit)
+	var dmg := _scaled_damage(def, skill_id, is_crit)
 	var fx := projectile_scene.instantiate() as ProjectileEffect
 	get_tree().current_scene.add_child(fx)
 	fx.color = def.color
@@ -286,7 +295,7 @@ func _cast_projectile(def: Dictionary, is_crit: bool) -> void:
 
 # --- Damage calc ---------------------------------------------------
 
-func _scaled_damage(def: Dictionary, is_crit: bool) -> float:
+func _scaled_damage(def: Dictionary, skill_id: String, is_crit: bool) -> float:
 	var base: float = def.base_damage
 	var dmg := base
 	if _player.stats:
@@ -304,6 +313,9 @@ func _scaled_damage(def: Dictionary, is_crit: bool) -> float:
 			"strength":     dmg *= _player.stats.melee_damage_mult()
 			"agility":      dmg *= _player.stats.ranged_damage_mult()
 			"intelligence": dmg *= _player.stats.spell_damage_mult()
+		# Skill rank: +20% damage per rank for non-buff skills
+		var rank: int = _player.stats.skill_rank(skill_id)
+		dmg *= (1.0 + 0.20 * rank)
 	dmg *= (1.0 + active_buff_amounts.get("damage_bonus", 0.0))
 	if _player.shape_shift:
 		dmg *= _player.shape_shift.skill_damage_mult()

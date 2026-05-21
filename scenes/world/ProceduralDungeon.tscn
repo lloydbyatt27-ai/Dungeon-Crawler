@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://scripts/world/DungeonGenerator.gd" id="3_gen"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/Goblin.tscn" id="4_goblin"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/GoblinChief.tscn" id="5_chief"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/BossSkeletonKing.tscn" id="5b_king"]
 [ext_resource type="PackedScene" path="res://scenes/world/TreasureChest.tscn" id="6_chest"]
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="7_hud"]
 [ext_resource type="Script" path="res://scripts/ui/DamageNumberSpawner.gd" id="8_spawner"]
@@ -19,6 +20,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/QuestLogUI.tscn" id="17_questlog"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ToastNotificationUI.tscn" id="18_toast"]
 [ext_resource type="PackedScene" path="res://scenes/ui/TutorialOverlay.tscn" id="19_tutorial"]
+[ext_resource type="PackedScene" path="res://scenes/ui/SkillsUI.tscn" id="20_skills"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
 albedo_color = Color(0.22, 0.21, 0.20, 1)
@@ -41,6 +43,7 @@ goblin_archer_scene = ExtResource("12_archer")
 skeleton_mage_scene = ExtResource("13_mage")
 orc_brute_scene = ExtResource("14_brute")
 goblin_chief_scene = ExtResource("5_chief")
+skeleton_king_scene = ExtResource("5b_king")
 chest_scene = ExtResource("6_chest")
 shrine_scene = ExtResource("15_shrine")
 wall_material = SubResource("StandardMaterial3D_wall")
@@ -75,3 +78,5 @@ damage_number_scene = ExtResource("9_dmgnum")
 [node name="ToastNotificationUI" parent="." instance=ExtResource("18_toast")]
 
 [node name="TutorialOverlay" parent="." instance=ExtResource("19_tutorial")]
+
+[node name="SkillsUI" parent="." instance=ExtResource("20_skills")]
