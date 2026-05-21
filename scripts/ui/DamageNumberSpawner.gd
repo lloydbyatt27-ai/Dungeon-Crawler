@@ -14,6 +14,11 @@ func _ready() -> void:
 func _on_show_damage_number(amount: float, world_position: Vector3, is_crit: bool) -> void:
 	if damage_number_scene == null:
 		return
+	# Honour the player's "damage numbers" preference. Floating text
+	# (level-ups, banners) is kept on regardless — only combat numbers
+	# get suppressed.
+	if not GameSettings.damage_numbers_enabled:
+		return
 	var num := damage_number_scene.instantiate() as DamageNumber
 	get_tree().current_scene.add_child(num)
 	num.setup(amount, world_position, is_crit)

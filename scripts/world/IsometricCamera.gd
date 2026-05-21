@@ -80,6 +80,8 @@ func set_target(node: Node3D) -> void:
 
 
 func shake(strength: float = 0.4, decay: float = 8.0) -> void:
-	_shake_strength = max(_shake_strength, strength)
+	# Honour the player's screen-shake scale setting (0 disables shake).
+	var scaled: float = strength * GameSettings.screen_shake_scale
+	_shake_strength = max(_shake_strength, scaled)
 	_shake_decay = decay
 

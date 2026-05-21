@@ -35,6 +35,7 @@ Bestiary="*res://scripts/autoload/Bestiary.gd"
 MercenarySystem="*res://scripts/autoload/MercenarySystem.gd"
 RunHistory="*res://scripts/autoload/RunHistory.gd"
 BossTimer="*res://scripts/autoload/BossTimer.gd"
+GameSettings="*res://scripts/autoload/GameSettings.gd"
 
 [display]
 
