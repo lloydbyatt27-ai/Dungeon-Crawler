@@ -46,9 +46,9 @@ func _apply_type_config() -> void:
 	if data.is_empty():
 		return
 	if health:
-		health.max_health = float(data.get("hp", 200.0))
+		health.max_health = float(data.get("hp", 200.0)) * MercenarySystem.hp_multiplier()
 		health.current_health = health.max_health
-	attack_damage = float(data.get("damage", 14.0))
+	attack_damage = float(data.get("damage", 14.0)) * MercenarySystem.damage_multiplier()
 	attack_cooldown = float(data.get("attack_cd", 1.2))
 	# Tint the body to the class color
 	var color: Color = data.get("body_color", Color(0.7, 0.7, 0.8))
@@ -155,6 +155,20 @@ func _find_nearest_enemy() -> Node3D:
 	if best_dist > aggro_range:
 		return null
 	return best
+
+
+## Rescale a live mercenary in response to a mid-run level-up.
+## Preserves current HP percentage rather than topping off, so the level-up
+## doesn't function as a free heal.
+func apply_level_scaling() -> void:
+	var data: Dictionary = MercenarySystem.MERC_TYPES.get(merc_type, {})
+	if data.is_empty() or health == null:
+		return
+	var pct: float = health.current_health / max(health.max_health, 1.0)
+	health.max_health = float(data.get("hp", 200.0)) * MercenarySystem.hp_multiplier()
+	health.current_health = clamp(pct * health.max_health, 1.0, health.max_health)
+	attack_damage = float(data.get("damage", 14.0)) * MercenarySystem.damage_multiplier()
+	hitbox.damage = attack_damage
 
 
 func _on_died() -> void:

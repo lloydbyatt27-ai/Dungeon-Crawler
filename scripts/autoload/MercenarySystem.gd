@@ -5,8 +5,21 @@ extends Node
 
 const FILE_PATH: String = "user://mercenary.json"
 
+# Progression — mercenaries gain XP from enemy kills while deployed.
+# 5 XP per regular kill, 60 per boss. Levels follow xp_for_next() below.
+const MAX_LEVEL: int = 20
+const XP_PER_KILL: int = 5
+const XP_PER_BOSS: int = 60
+const PER_LEVEL_DAMAGE_MULT: float = 0.05  # +5%/level
+const PER_LEVEL_HP_MULT: float = 0.05      # +5%/level
+
 # "" = no merc hired, otherwise one of MERC_TYPES below.
 var current_type: String = ""
+var level: int = 1
+var xp: int = 0
+
+
+signal merc_leveled_up(new_level: int)
 
 const MERC_TYPES: Dictionary = {
 	"warrior": {
@@ -41,6 +54,61 @@ const MERC_TYPES: Dictionary = {
 
 func _ready() -> void:
 	_load()
+	EventBus.enemy_died.connect(_on_enemy_died)
+
+
+func xp_for_next() -> int:
+	return int(100.0 * pow(level, 1.5))
+
+
+func damage_multiplier() -> float:
+	return 1.0 + PER_LEVEL_DAMAGE_MULT * float(max(level - 1, 0))
+
+
+func hp_multiplier() -> float:
+	return 1.0 + PER_LEVEL_HP_MULT * float(max(level - 1, 0))
+
+
+func _on_enemy_died(enemy: Node, _pos: Vector3) -> void:
+	if not has_active_merc():
+		return
+	# Only award XP when a merc is actually present in the scene
+	if get_tree() == null:
+		return
+	if get_tree().get_nodes_in_group("mercenary").is_empty():
+		return
+	var amount: int = XP_PER_KILL
+	if enemy and "is_boss" in enemy and enemy.is_boss:
+		amount = XP_PER_BOSS
+	_gain_xp(amount)
+
+
+func _gain_xp(amount: int) -> void:
+	if level >= MAX_LEVEL:
+		return
+	xp += amount
+	var leveled := false
+	while xp >= xp_for_next() and level < MAX_LEVEL:
+		xp -= xp_for_next()
+		level += 1
+		leveled = true
+	if leveled:
+		merc_leveled_up.emit(level)
+		var players := get_tree().get_nodes_in_group("player")
+		var anchor: Vector3 = Vector3.ZERO
+		if not players.is_empty():
+			anchor = (players[0] as Node3D).global_position + Vector3(0, 3.0, 0)
+		EventBus.show_floating_text.emit(
+			"%s reached Lv %d" % [current_data().get("display_name", "Mercenary"), level],
+			anchor,
+			Color(0.55, 0.85, 0.45)
+		)
+		# Rescale any active mercenary instances on the fly so the buff
+		# applies mid-run, not just on next spawn.
+		for m in get_tree().get_nodes_in_group("mercenary"):
+			if m.has_method("apply_level_scaling"):
+				m.apply_level_scaling()
+	_save()
 
 
 func _load() -> void:
@@ -53,10 +121,12 @@ func _load() -> void:
 	f.close()
 	if parsed is Dictionary:
 		current_type = String(parsed.get("type", ""))
+		level = clamp(int(parsed.get("level", 1)), 1, MAX_LEVEL)
+		xp = max(0, int(parsed.get("xp", 0)))
 
 
 func _save() -> void:
-	var data := {"type": current_type}
+	var data := {"type": current_type, "level": level, "xp": xp}
 	var f := FileAccess.open(FILE_PATH, FileAccess.WRITE)
 	if f == null:
 		return
@@ -67,6 +137,10 @@ func _save() -> void:
 func hire(merc_type: String) -> bool:
 	if not MERC_TYPES.has(merc_type):
 		return false
+	# Swapping merc types resets level/xp. Same type = keep progression.
+	if current_type != merc_type:
+		level = 1
+		xp = 0
 	current_type = merc_type
 	_save()
 	return true
@@ -74,6 +148,8 @@ func hire(merc_type: String) -> bool:
 
 func dismiss() -> void:
 	current_type = ""
+	level = 1
+	xp = 0
 	_save()
 
 
