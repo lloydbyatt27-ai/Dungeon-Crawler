@@ -84,6 +84,9 @@ var status_icon_label: Label3D
 var _player: Node3D
 var _body_default_material: Material
 var _flash_timer: float = 0.0
+# When a boss spawns we stamp the wall-clock time so we can report kill
+# duration to BossTimer on death.
+var _spawn_time_ms: int = 0
 
 
 func _ready() -> void:
@@ -120,6 +123,9 @@ func _ready() -> void:
 	var players := get_tree().get_nodes_in_group("player")
 	if players.size() > 0:
 		_player = players[0]
+
+	if is_boss:
+		_spawn_time_ms = Time.get_ticks_msec()
 
 
 const _STATUS_ICONS: Dictionary = {
@@ -388,6 +394,15 @@ func _on_died() -> void:
 	EventBus.enemy_died.emit(self, global_position)
 	if is_boss:
 		EventBus.boss_defeated.emit(self)
+		# Record kill time against BossTimer (uses the engine-class node
+		# name as the species key — same as Bestiary).
+		var key: String = name
+		var at: int = key.find("@")
+		if at >= 0:
+			key = key.substr(0, at)
+		var elapsed: float = float(Time.get_ticks_msec() - _spawn_time_ms) / 1000.0
+		var display: String = display_name if display_name != "" else key
+		BossTimer.record_kill(key, display, elapsed)
 	# Fall over and fade out
 	_die_animation()
 
@@ -426,6 +441,13 @@ func _drop_loot() -> void:
 			var glyph := ItemDatabase.roll_glyph()
 			if glyph:
 				_spawn_item_pickup(glyph, Vector3(randf_range(-0.5, 0.5), 0.6, randf_range(-0.5, 0.5)))
+	# Map fragment drop — very rare, build-up reward.
+	if item_pickup_scene:
+		var frag_chance: float = 0.20 if is_boss else 0.005
+		if randf() < frag_chance:
+			var frag := ItemDatabase.roll_map_fragment()
+			if frag:
+				_spawn_item_pickup(frag, Vector3(randf_range(-0.5, 0.5), 0.7, randf_range(-0.5, 0.5)))
 	# Guaranteed boss drop
 	if is_boss and guaranteed_drop_id != "":
 		var unique := ItemDatabase.create_by_id(guaranteed_drop_id)

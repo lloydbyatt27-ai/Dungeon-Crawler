@@ -76,10 +76,16 @@ func _refresh() -> void:
 	for item in _inventory.items:
 		if item.is_gem():
 			gem_items.append(item)
-		elif item.is_potion() or item.is_glyph():
-			continue  # potions/glyphs aren't forge material
+		elif item.is_potion() or item.is_glyph() or item.is_map_fragment():
+			continue  # potions/glyphs/fragments aren't upgrade material
 		else:
 			equipment_items.append(item)
+
+	# Treasure map: show a "Combine" banner if the player owns at least one
+	# of each fragment.
+	if _has_all_fragments():
+		var banner := _make_combine_banner()
+		list_box.add_child(banner)
 
 	if equipment_items.is_empty() and gem_items.is_empty():
 		var empty := Label.new()
@@ -205,6 +211,79 @@ func _upgrade(item: Item) -> void:
 			UIStyle.COL_ACCENT
 		)
 		_refresh()
+
+
+# --- Treasure map fragments -----------------------------------------
+
+func _has_all_fragments() -> bool:
+	if _inventory == null:
+		return false
+	for fid in ItemDatabase.MAP_FRAGMENT_IDS:
+		if not _inventory.items.any(func(it): return it.item_id == fid):
+			return false
+	return true
+
+
+func _make_combine_banner() -> Control:
+	var row := HBoxContainer.new()
+	row.custom_minimum_size = Vector2(0, 44)
+	row.add_theme_constant_override("separation", 10)
+	var label := Label.new()
+	label.text = "★ All four map fragments in your backpack"
+	label.add_theme_color_override("font_color", Color(1, 0.78, 0.35))
+	label.add_theme_font_size_override("font_size", 14)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(label)
+	var btn := Button.new()
+	btn.text = "Combine →  Treasure Cache"
+	btn.custom_minimum_size = Vector2(220, 36)
+	btn.add_theme_color_override("font_color", Color(1, 0.78, 0.35))
+	btn.pressed.connect(_combine_fragments)
+	row.add_child(btn)
+	return row
+
+
+func _combine_fragments() -> void:
+	if not _has_all_fragments() or _inventory == null or _player == null:
+		return
+	# Consume one of each fragment
+	for fid in ItemDatabase.MAP_FRAGMENT_IDS:
+		for it in _inventory.items.duplicate():
+			if it.item_id == fid:
+				_inventory.items.erase(it)
+				break
+	# Reward: 1 legendary, 1 set piece, gold, shards
+	var legendary := _roll_legendary()
+	if legendary:
+		_inventory.add_item(legendary)
+	var set_piece := ItemDatabase.roll_set_piece()
+	if set_piece:
+		_inventory.add_item(set_piece)
+	var gold_reward := 750
+	var shard_reward := 30
+	_player.stats.gold += gold_reward
+	_player.stats.soul_shards += shard_reward
+	EventBus.player_gold_changed.emit(_player.stats.gold)
+	EventBus.player_shards_changed.emit(_player.stats.soul_shards)
+	_inventory.items_changed.emit()
+	EventBus.show_floating_text.emit(
+		"Treasure Cache!  +%dg  +%d shards" % [gold_reward, shard_reward],
+		_player.global_position + Vector3(0, 2.8, 0),
+		Color(1, 0.78, 0.35)
+	)
+	_refresh()
+
+
+func _roll_legendary() -> Item:
+	# Pick from any item id flagged as LEGENDARY in the templates list.
+	var legendary_ids: Array = []
+	for t in ItemDatabase.ITEM_TEMPLATES:
+		if t.get("rarity", "") == "LEGENDARY":
+			legendary_ids.append(t.id)
+	if legendary_ids.is_empty():
+		return null
+	return ItemDatabase.create_by_id(legendary_ids[randi() % legendary_ids.size()])
 
 
 # --- Reforge ---------------------------------------------------------

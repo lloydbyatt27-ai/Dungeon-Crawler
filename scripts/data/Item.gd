@@ -134,6 +134,10 @@ func is_glyph() -> bool:
 	return item_type == ItemType.MISC and item_id.begins_with("glyph_") and glyph_effect != ""
 
 
+func is_map_fragment() -> bool:
+	return item_type == ItemType.MISC and item_id.begins_with("map_fragment_")
+
+
 ## Items with sockets can absorb a gem. Returns true if the gem was applied.
 func can_socket() -> bool:
 	return socket_count > 0 and socketed_gems.size() < socket_count

@@ -135,6 +135,52 @@ const ITEM_TEMPLATES: Array = [
 	  "armor": 6.0, "intelligence_bonus": 3, "max_mana_bonus": 20.0,
 	  "description": "Part of the Stormcaller Vestments set." },
 
+	# --- Bandit's Cloak (3-piece set: helm/gloves/boots) ---
+	{ "id": "bandit_hood", "name": "Bandit's Hood", "type": "HELMET", "rarity": "EPIC",
+	  "set_id": "bandits_cloak",
+	  "armor": 10.0, "agility_bonus": 2, "crit_chance_bonus": 0.02,
+	  "description": "Part of the Bandit's Cloak set." },
+	{ "id": "bandit_gloves", "name": "Bandit's Wraps", "type": "GLOVES", "rarity": "EPIC",
+	  "set_id": "bandits_cloak",
+	  "armor": 8.0, "agility_bonus": 2,
+	  "description": "Part of the Bandit's Cloak set." },
+	{ "id": "bandit_boots", "name": "Bandit's Treads", "type": "BOOTS", "rarity": "EPIC",
+	  "set_id": "bandits_cloak",
+	  "armor": 10.0, "agility_bonus": 3,
+	  "description": "Part of the Bandit's Cloak set." },
+
+	# --- Wildheart (3-piece set: helm/armor/boots) ---
+	{ "id": "wildheart_helm", "name": "Wildheart Crown", "type": "HELMET", "rarity": "EPIC",
+	  "set_id": "wildheart",
+	  "armor": 12.0, "max_hp_bonus": 30.0, "stamina_bonus": 2,
+	  "description": "Part of the Wildheart set." },
+	{ "id": "wildheart_armor", "name": "Wildheart Cuirass", "type": "ARMOR", "rarity": "EPIC",
+	  "set_id": "wildheart",
+	  "armor": 28.0, "max_hp_bonus": 70.0, "stamina_bonus": 4,
+	  "description": "Part of the Wildheart set." },
+	{ "id": "wildheart_boots", "name": "Wildheart Striders", "type": "BOOTS", "rarity": "EPIC",
+	  "set_id": "wildheart",
+	  "armor": 10.0, "max_hp_bonus": 20.0, "stamina_bonus": 2,
+	  "description": "Part of the Wildheart set." },
+
+	# --- Sun's Vigil (4-piece set: weapon/helm/gloves/armor) ---
+	{ "id": "vigil_sword", "name": "Sunblade", "type": "WEAPON", "rarity": "EPIC",
+	  "set_id": "suns_vigil",
+	  "weapon_damage": 16.0, "strength_bonus": 3,
+	  "description": "Part of the Sun's Vigil set." },
+	{ "id": "vigil_helm", "name": "Sunlit Helm", "type": "HELMET", "rarity": "EPIC",
+	  "set_id": "suns_vigil",
+	  "armor": 10.0, "intelligence_bonus": 2,
+	  "description": "Part of the Sun's Vigil set." },
+	{ "id": "vigil_gloves", "name": "Sunlit Gauntlets", "type": "GLOVES", "rarity": "EPIC",
+	  "set_id": "suns_vigil",
+	  "armor": 8.0, "weapon_damage": 4.0, "strength_bonus": 2,
+	  "description": "Part of the Sun's Vigil set." },
+	{ "id": "vigil_armor", "name": "Sunlit Plate", "type": "ARMOR", "rarity": "EPIC",
+	  "set_id": "suns_vigil",
+	  "armor": 24.0, "max_hp_bonus": 40.0,
+	  "description": "Part of the Sun's Vigil set." },
+
 	# --- Gems (MISC, socketed into other items via the Forge) ---
 	{ "id": "gem_ruby", "name": "Ruby", "type": "MISC", "rarity": "UNCOMMON",
 	  "weapon_damage": 4.0, "description": "Socket into a weapon for +damage." },
@@ -184,6 +230,24 @@ const ITEM_TEMPLATES: Array = [
 	{ "id": "glyph_iron_greater", "name": "Greater Glyph of Iron", "type": "MISC", "rarity": "EPIC",
 	  "glyph_effect": "buff_duration", "glyph_value": 0.50, "sell_value_override": 160,
 	  "description": "+50% duration on buff skills." },
+
+	# --- Treasure map fragments (MISC; combine all four at the Forge) ---
+	{ "id": "map_fragment_n", "name": "Map Fragment N", "type": "MISC", "rarity": "EPIC",
+	  "sell_value_override": 80,
+	  "description": "Northern quadrant. Combine with the other three at the Forge." },
+	{ "id": "map_fragment_e", "name": "Map Fragment E", "type": "MISC", "rarity": "EPIC",
+	  "sell_value_override": 80,
+	  "description": "Eastern quadrant. Combine with the other three at the Forge." },
+	{ "id": "map_fragment_s", "name": "Map Fragment S", "type": "MISC", "rarity": "EPIC",
+	  "sell_value_override": 80,
+	  "description": "Southern quadrant. Combine with the other three at the Forge." },
+	{ "id": "map_fragment_w", "name": "Map Fragment W", "type": "MISC", "rarity": "EPIC",
+	  "sell_value_override": 80,
+	  "description": "Western quadrant. Combine with the other three at the Forge." },
+]
+
+const MAP_FRAGMENT_IDS: Array = [
+	"map_fragment_n", "map_fragment_e", "map_fragment_s", "map_fragment_w",
 ]
 
 ## Potion item_ids exposed for the Alchemist's stock.
@@ -306,6 +370,15 @@ static func roll_gem() -> Item:
 	if GEM_IDS.is_empty():
 		return null
 	var id: String = GEM_IDS[randi() % GEM_IDS.size()]
+	return create_by_id(id)
+
+
+## Returns a random map fragment. Rolls all four with equal probability;
+## the player has to collect duplicates and trade with their stash.
+static func roll_map_fragment() -> Item:
+	if MAP_FRAGMENT_IDS.is_empty():
+		return null
+	var id: String = MAP_FRAGMENT_IDS[randi() % MAP_FRAGMENT_IDS.size()]
 	return create_by_id(id)
 
 
