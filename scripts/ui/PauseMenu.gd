@@ -16,6 +16,7 @@ extends CanvasLayer
 @onready var loadout_button: Button = $Root/MainPanel/Margin/VBox/LoadoutButton
 @onready var modifiers_button: Button = $Root/MainPanel/Margin/VBox/ModifiersButton
 @onready var run_history_button: Button = $Root/MainPanel/Margin/VBox/RunHistoryButton
+@onready var leaderboard_button: Button = $Root/MainPanel/Margin/VBox/LeaderboardButton
 @onready var quit_hub_button: Button = $Root/MainPanel/Margin/VBox/QuitHubButton
 @onready var quit_menu_button: Button = $Root/MainPanel/Margin/VBox/QuitMenuButton
 
@@ -26,6 +27,7 @@ extends CanvasLayer
 @onready var sfx_label: Label = $Root/SettingsPanel/Margin/VBox/SFX/SFXValue
 @onready var music_label: Label = $Root/SettingsPanel/Margin/VBox/Music/MusicValue
 @onready var controls_box: VBoxContainer = $Root/SettingsPanel/Margin/VBox/ControlsBox
+@onready var video_box: VBoxContainer = $Root/SettingsPanel/Margin/VBox/VideoBox
 @onready var loot_row: HBoxContainer = $Root/SettingsPanel/Margin/VBox/LootRow
 @onready var back_button: Button = $Root/SettingsPanel/Margin/VBox/BackButton
 
@@ -57,6 +59,7 @@ func _ready() -> void:
 	loadout_button.pressed.connect(_show_loadout)
 	modifiers_button.pressed.connect(_show_modifiers)
 	run_history_button.pressed.connect(_show_run_history)
+	leaderboard_button.pressed.connect(_show_leaderboard)
 	quit_hub_button.pressed.connect(_quit_to_hub)
 	quit_menu_button.pressed.connect(_quit_to_menu)
 	back_button.pressed.connect(_show_main)
@@ -69,6 +72,7 @@ func _ready() -> void:
 	sfx_slider.value_changed.connect(_on_sfx_changed)
 	music_slider.value_changed.connect(_on_music_changed)
 	_refresh_volume_labels()
+	_build_video_settings()
 	_build_loot_filter_row()
 	_build_controls()
 
@@ -120,6 +124,11 @@ func _show_loadout() -> void:
 
 func _show_run_history() -> void:
 	var ui = preload("res://scenes/ui/RunHistoryUI.tscn").instantiate()
+	add_child(ui)
+
+
+func _show_leaderboard() -> void:
+	var ui = preload("res://scenes/ui/LeaderboardUI.tscn").instantiate()
 	add_child(ui)
 
 
@@ -414,6 +423,114 @@ func _refresh_volume_labels() -> void:
 	master_label.text = "%d%%" % int(AudioManager.master_volume * 100)
 	sfx_label.text = "%d%%" % int(AudioManager.sfx_volume * 100)
 	music_label.text = "%d%%" % int(AudioManager.music_volume * 100)
+
+
+# --- Video settings -----------------------------------------------
+
+func _build_video_settings() -> void:
+	for c in video_box.get_children():
+		c.queue_free()
+	# Fullscreen
+	video_box.add_child(_video_toggle("Fullscreen", GameSettings.fullscreen,
+		func(v): GameSettings.set_fullscreen(v)))
+	# VSync
+	video_box.add_child(_video_toggle("VSync", GameSettings.vsync,
+		func(v): GameSettings.set_vsync(v)))
+	# Damage numbers
+	video_box.add_child(_video_toggle("Damage Numbers", GameSettings.damage_numbers_enabled,
+		func(v): GameSettings.set_damage_numbers_enabled(v)))
+	# Max FPS — segmented buttons
+	video_box.add_child(_video_fps_row())
+	# Camera zoom — slider
+	video_box.add_child(_video_slider(
+		"Camera Zoom", 10.0, 24.0, 0.5, GameSettings.camera_zoom,
+		func(v): GameSettings.set_camera_zoom(v),
+		func(v): return "%.0f" % v
+	))
+	# Screen shake
+	video_box.add_child(_video_slider(
+		"Screen Shake", 0.0, 1.5, 0.05, GameSettings.screen_shake_scale,
+		func(v): GameSettings.set_screen_shake_scale(v),
+		func(v): return "%.0f%%" % (v * 100.0)
+	))
+
+
+func _video_toggle(label_text: String, initial: bool, on_changed: Callable) -> Control:
+	var row := HBoxContainer.new()
+	row.custom_minimum_size = Vector2(0, 28)
+	row.add_theme_constant_override("separation", 8)
+	var label := Label.new()
+	label.text = label_text
+	label.custom_minimum_size = Vector2(150, 0)
+	label.add_theme_font_size_override("font_size", 13)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(label)
+	var btn := CheckButton.new()
+	btn.button_pressed = initial
+	btn.toggled.connect(on_changed)
+	row.add_child(btn)
+	return row
+
+
+func _video_fps_row() -> Control:
+	var row := HBoxContainer.new()
+	row.custom_minimum_size = Vector2(0, 28)
+	row.add_theme_constant_override("separation", 4)
+	var label := Label.new()
+	label.text = "Max FPS"
+	label.custom_minimum_size = Vector2(140, 0)
+	label.add_theme_font_size_override("font_size", 13)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(label)
+	for fps in GameSettings.FPS_OPTIONS:
+		var btn := Button.new()
+		btn.text = "∞" if fps == 0 else str(fps)
+		btn.custom_minimum_size = Vector2(0, 24)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.add_theme_font_size_override("font_size", 11)
+		if fps == GameSettings.max_fps:
+			btn.modulate = Color(1.0, 0.85, 0.4)
+			btn.disabled = true
+		btn.pressed.connect(func():
+			GameSettings.set_max_fps(fps)
+			_build_video_settings()
+		)
+		row.add_child(btn)
+	return row
+
+
+func _video_slider(label_text: String, min_v: float, max_v: float, step: float,
+		initial: float, on_changed: Callable, format: Callable) -> Control:
+	var row := HBoxContainer.new()
+	row.custom_minimum_size = Vector2(0, 28)
+	row.add_theme_constant_override("separation", 8)
+	var label := Label.new()
+	label.text = label_text
+	label.custom_minimum_size = Vector2(140, 0)
+	label.add_theme_font_size_override("font_size", 13)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(label)
+	var slider := HSlider.new()
+	slider.min_value = min_v
+	slider.max_value = max_v
+	slider.step = step
+	slider.value = initial
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(slider)
+	var value_label := Label.new()
+	value_label.text = format.call(initial)
+	value_label.custom_minimum_size = Vector2(60, 0)
+	value_label.add_theme_font_size_override("font_size", 12)
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(value_label)
+	slider.value_changed.connect(func(v):
+		on_changed.call(v)
+		value_label.text = format.call(v)
+	)
+	return row
 
 
 # --- Loot filter --------------------------------------------------
