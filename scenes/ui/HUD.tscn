@@ -197,6 +197,13 @@ text = ""
 horizontal_alignment = 1
 modulate = Color(1, 1, 1, 0)
 
+[node name="HitFlash" type="ColorRect" parent="Root"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(1, 1, 1, 0)
+mouse_filter = 2
+
 [node name="DeathOverlay" type="ColorRect" parent="Root"]
 anchors_preset = 15
 anchor_right = 1.0
