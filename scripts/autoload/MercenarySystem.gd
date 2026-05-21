@@ -17,9 +17,66 @@ const PER_LEVEL_HP_MULT: float = 0.05      # +5%/level
 var current_type: String = ""
 var level: int = 1
 var xp: int = 0
+# Specialization path chosen at level 5. Empty = not yet picked.
+var specialization: String = ""
+const SPEC_UNLOCK_LEVEL: int = 5
 
 
 signal merc_leveled_up(new_level: int)
+
+## Specializations available per merc type. Picked once at SPEC_UNLOCK_LEVEL
+## and locked in until the merc is dismissed. Each entry is a stat-mult
+## bundle applied on top of base + level scaling.
+const SPECIALIZATIONS: Dictionary = {
+	"warrior": [
+		{"id": "bulwark",     "name": "Bulwark",     "desc": "+50% HP. The unkillable wall.",
+		 "hp_mult": 1.5, "dmg_mult": 1.0, "cd_mult": 1.0},
+		{"id": "berserker",   "name": "Berserker",   "desc": "+40% damage. Death-or-glory.",
+		 "hp_mult": 0.9, "dmg_mult": 1.4, "cd_mult": 1.0},
+	],
+	"archer": [
+		{"id": "volley",      "name": "Volley",      "desc": "+50% damage. Each shot stings.",
+		 "hp_mult": 1.0, "dmg_mult": 1.5, "cd_mult": 1.0},
+		{"id": "sharpshooter","name": "Sharpshooter","desc": "-30% attack cooldown.",
+		 "hp_mult": 1.0, "dmg_mult": 1.0, "cd_mult": 0.7},
+	],
+	"mage": [
+		{"id": "storm",       "name": "Storm",       "desc": "+60% damage. Calls the lightning.",
+		 "hp_mult": 1.0, "dmg_mult": 1.6, "cd_mult": 1.0},
+		{"id": "frostbinder", "name": "Frostbinder", "desc": "+20% damage, +20% HP, -15% cooldown.",
+		 "hp_mult": 1.2, "dmg_mult": 1.2, "cd_mult": 0.85},
+	],
+}
+
+
+## Returns the data dict for the current spec, or empty if not chosen.
+func current_spec_data() -> Dictionary:
+	if current_type == "" or specialization == "":
+		return {}
+	for spec in SPECIALIZATIONS.get(current_type, []):
+		if spec.get("id", "") == specialization:
+			return spec
+	return {}
+
+
+func spec_unlocked() -> bool:
+	return has_active_merc() and level >= SPEC_UNLOCK_LEVEL
+
+
+func choose_spec(spec_id: String) -> bool:
+	if not spec_unlocked():
+		return false
+	for spec in SPECIALIZATIONS.get(current_type, []):
+		if spec.get("id", "") == spec_id:
+			specialization = spec_id
+			_save()
+			# Rescale any live mercenaries to apply the new bonuses
+			for m in get_tree().get_nodes_in_group("mercenary"):
+				if m.has_method("apply_level_scaling"):
+					m.apply_level_scaling()
+			return true
+	return false
+
 
 const MERC_TYPES: Dictionary = {
 	"warrior": {
@@ -123,10 +180,11 @@ func _load() -> void:
 		current_type = String(parsed.get("type", ""))
 		level = clamp(int(parsed.get("level", 1)), 1, MAX_LEVEL)
 		xp = max(0, int(parsed.get("xp", 0)))
+		specialization = String(parsed.get("specialization", ""))
 
 
 func _save() -> void:
-	var data := {"type": current_type, "level": level, "xp": xp}
+	var data := {"type": current_type, "level": level, "xp": xp, "specialization": specialization}
 	var f := FileAccess.open(FILE_PATH, FileAccess.WRITE)
 	if f == null:
 		return
@@ -137,10 +195,11 @@ func _save() -> void:
 func hire(merc_type: String) -> bool:
 	if not MERC_TYPES.has(merc_type):
 		return false
-	# Swapping merc types resets level/xp. Same type = keep progression.
+	# Swapping merc types resets level/xp/spec. Same type = keep progression.
 	if current_type != merc_type:
 		level = 1
 		xp = 0
+		specialization = ""
 	current_type = merc_type
 	_save()
 	return true
@@ -150,6 +209,7 @@ func dismiss() -> void:
 	current_type = ""
 	level = 1
 	xp = 0
+	specialization = ""
 	_save()
 
 

@@ -45,11 +45,15 @@ func _apply_type_config() -> void:
 	var data: Dictionary = MercenarySystem.MERC_TYPES.get(merc_type, {})
 	if data.is_empty():
 		return
+	var spec: Dictionary = MercenarySystem.current_spec_data()
+	var spec_hp: float = float(spec.get("hp_mult", 1.0))
+	var spec_dmg: float = float(spec.get("dmg_mult", 1.0))
+	var spec_cd: float = float(spec.get("cd_mult", 1.0))
 	if health:
-		health.max_health = float(data.get("hp", 200.0)) * MercenarySystem.hp_multiplier()
+		health.max_health = float(data.get("hp", 200.0)) * MercenarySystem.hp_multiplier() * spec_hp
 		health.current_health = health.max_health
-	attack_damage = float(data.get("damage", 14.0)) * MercenarySystem.damage_multiplier()
-	attack_cooldown = float(data.get("attack_cd", 1.2))
+	attack_damage = float(data.get("damage", 14.0)) * MercenarySystem.damage_multiplier() * spec_dmg
+	attack_cooldown = float(data.get("attack_cd", 1.2)) * spec_cd
 	# Tint the body to the class color
 	var color: Color = data.get("body_color", Color(0.7, 0.7, 0.8))
 	if body_mesh:
@@ -164,10 +168,15 @@ func apply_level_scaling() -> void:
 	var data: Dictionary = MercenarySystem.MERC_TYPES.get(merc_type, {})
 	if data.is_empty() or health == null:
 		return
+	var spec: Dictionary = MercenarySystem.current_spec_data()
+	var spec_hp: float = float(spec.get("hp_mult", 1.0))
+	var spec_dmg: float = float(spec.get("dmg_mult", 1.0))
+	var spec_cd: float = float(spec.get("cd_mult", 1.0))
 	var pct: float = health.current_health / max(health.max_health, 1.0)
-	health.max_health = float(data.get("hp", 200.0)) * MercenarySystem.hp_multiplier()
+	health.max_health = float(data.get("hp", 200.0)) * MercenarySystem.hp_multiplier() * spec_hp
 	health.current_health = clamp(pct * health.max_health, 1.0, health.max_health)
-	attack_damage = float(data.get("damage", 14.0)) * MercenarySystem.damage_multiplier()
+	attack_damage = float(data.get("damage", 14.0)) * MercenarySystem.damage_multiplier() * spec_dmg
+	attack_cooldown = float(data.get("attack_cd", 1.2)) * spec_cd
 	hitbox.damage = attack_damage
 
 
