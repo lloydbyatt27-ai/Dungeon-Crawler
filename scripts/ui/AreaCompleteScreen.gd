@@ -63,8 +63,10 @@ func _show() -> void:
 	if not players.is_empty():
 		SaveSystem.save_player(players[0])
 
-	# Bump dungeons_completed
+	# Bump dungeons_completed and fire the dungeon_completed signal so
+	# meta-systems (class unlocks, achievements) can react.
 	GameState.run_stats.dungeons_completed += 1
+	EventBus.dungeon_completed.emit(GameState.current_zone_id)
 
 	# Fade-in
 	root.modulate = Color(1, 1, 1, 0)

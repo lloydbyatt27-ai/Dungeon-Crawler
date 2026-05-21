@@ -28,6 +28,10 @@ func _ready() -> void:
 	_build_difficulty_row()
 	begin_button.pressed.connect(_on_begin_pressed)
 	back_button.pressed.connect(_on_back_pressed)
+	# Start with the first unlocked class, not necessarily Guardian, in case
+	# the player has dismissed it as the default later on.
+	if not (_selected_class in SaveSystem.unlocked_classes) and not SaveSystem.unlocked_classes.is_empty():
+		_selected_class = SaveSystem.unlocked_classes[0]
 	_select(_selected_class)
 	_select_difficulty(_selected_difficulty)
 
@@ -79,14 +83,21 @@ func _build_cards() -> void:
 func _make_card(class_id: String, data: Dictionary) -> Button:
 	var card := Button.new()
 	card.custom_minimum_size = Vector2(140, 180)
-	card.text = "%s\n\n%s\n%s" % [
-		data.display_name,
-		data.get("role", ""),
-		data.get("difficulty", ""),
-	]
-	card.add_theme_color_override("font_color", data.get("body_color", Color.WHITE))
-	card.add_theme_color_override("font_hover_color", data.get("body_color", Color.WHITE).lightened(0.2))
-	card.pressed.connect(_select.bind(class_id))
+	var locked: bool = not (class_id in SaveSystem.unlocked_classes)
+	if locked:
+		card.text = "🔒 %s\n\n%s" % [data.display_name, data.get("unlock_text", "Locked.")]
+		card.disabled = true
+		card.tooltip_text = data.get("unlock_text", "")
+		card.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+	else:
+		card.text = "%s\n\n%s\n%s" % [
+			data.display_name,
+			data.get("role", ""),
+			data.get("difficulty", ""),
+		]
+		card.add_theme_color_override("font_color", data.get("body_color", Color.WHITE))
+		card.add_theme_color_override("font_hover_color", data.get("body_color", Color.WHITE).lightened(0.2))
+		card.pressed.connect(_select.bind(class_id))
 	return card
 
 
