@@ -6,6 +6,7 @@ extends Node
 signal items_changed
 signal equipment_changed(slot: String, item)
 signal belt_changed
+signal glyphs_changed
 
 const MAX_INVENTORY_SIZE: int = 24
 const SLOTS: Array = ["weapon", "offhand", "armor", "helmet", "gloves", "boots"]
@@ -23,6 +24,11 @@ var equipment: Dictionary = {
 
 # 4-slot potion belt (1-4 hotkeys). Each entry is either an Item or null.
 var potion_belt: Array = [null, null, null, null]
+
+# 3-slot glyph rack. Glyph effects multiply skill stats globally — read
+# by SkillSystem when computing damage / cooldown / buff duration.
+const GLYPH_SLOT_COUNT: int = 3
+var glyph_slots: Array = [null, null, null]
 
 var _player: PlayerController
 
@@ -154,6 +160,48 @@ func use_belt_potion(slot: int) -> bool:
 		Color(0.55, 1.0, 0.55) if potion.potion_effect == "heal" else Color(0.5, 0.7, 1.0)
 	)
 	return true
+
+
+# --- Glyph slots ----------------------------------------------------
+
+## Equip a glyph from the backpack into the first empty glyph slot.
+func glyph_equip(item: Item) -> int:
+	if item == null or not item.is_glyph() or not items.has(item):
+		return -1
+	for i in range(GLYPH_SLOT_COUNT):
+		if glyph_slots[i] == null:
+			glyph_slots[i] = item
+			items.erase(item)
+			glyphs_changed.emit()
+			items_changed.emit()
+			return i
+	return -1
+
+
+## Unequip a glyph slot back to the backpack.
+func glyph_unequip(slot: int) -> bool:
+	if slot < 0 or slot >= GLYPH_SLOT_COUNT:
+		return false
+	var item: Item = glyph_slots[slot]
+	if item == null:
+		return false
+	if items.size() >= MAX_INVENTORY_SIZE:
+		return false
+	glyph_slots[slot] = null
+	items.append(item)
+	glyphs_changed.emit()
+	items_changed.emit()
+	return true
+
+
+## Sum the `glyph_value` of every equipped glyph matching `effect`. Returns
+## the aggregate multiplier (e.g. two +15% Ember Glyphs → 0.30).
+func glyph_total(effect: String) -> float:
+	var total: float = 0.0
+	for g in glyph_slots:
+		if g and g.glyph_effect == effect:
+			total += g.glyph_value
+	return total
 
 
 # --- Gold -----------------------------------------------------------

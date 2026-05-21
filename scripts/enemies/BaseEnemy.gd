@@ -419,6 +419,13 @@ func _drop_loot() -> void:
 			var gem := ItemDatabase.roll_gem()
 			if gem:
 				_spawn_item_pickup(gem, Vector3(randf_range(-0.4, 0.4), 0.5, randf_range(-0.4, 0.4)))
+	# Glyph drop — much rarer, bosses guaranteed to roll it.
+	if item_pickup_scene:
+		var glyph_chance: float = 0.40 if is_boss else 0.015
+		if randf() < glyph_chance:
+			var glyph := ItemDatabase.roll_glyph()
+			if glyph:
+				_spawn_item_pickup(glyph, Vector3(randf_range(-0.5, 0.5), 0.6, randf_range(-0.5, 0.5)))
 	# Guaranteed boss drop
 	if is_boss and guaranteed_drop_id != "":
 		var unique := ItemDatabase.create_by_id(guaranteed_drop_id)

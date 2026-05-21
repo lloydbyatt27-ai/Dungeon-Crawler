@@ -64,6 +64,21 @@ static func render(label: RichTextLabel, item: Item, equipped: Item = null) -> v
 				label.add_text("  (%d pc) %s" % [int(n), tiers[n]])
 				label.pop()
 				label.newline()
+	# Glyph effect
+	if item.is_glyph():
+		var gcol := Color(0.85, 0.75, 1.0)
+		label.push_color(gcol)
+		match item.glyph_effect:
+			"skill_damage":
+				label.add_text("+%.0f%% Skill Damage" % (item.glyph_value * 100.0))
+			"skill_cooldown":
+				label.add_text("-%.0f%% Skill Cooldown" % (item.glyph_value * 100.0))
+			"buff_duration":
+				label.add_text("+%.0f%% Buff Duration" % (item.glyph_value * 100.0))
+			_:
+				label.add_text("Glyph: %s" % item.glyph_effect)
+		label.pop()
+		label.newline()
 	# Potion effect
 	if item.is_potion():
 		var pcol := Color(0.55, 1.0, 0.55) if item.potion_effect == "heal" else Color(0.55, 0.75, 1.0)

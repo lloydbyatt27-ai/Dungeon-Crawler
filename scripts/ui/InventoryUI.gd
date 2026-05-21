@@ -7,6 +7,7 @@ extends CanvasLayer
 @onready var dim: ColorRect = $Root/Dim
 @onready var equipment_box: HBoxContainer = $Root/Panel/Margin/VBox/EquipmentBox
 @onready var belt_box: HBoxContainer = $Root/Panel/Margin/VBox/BeltBox
+@onready var glyph_box: HBoxContainer = $Root/Panel/Margin/VBox/GlyphBox
 @onready var inventory_grid: GridContainer = $Root/Panel/Margin/VBox/InventoryGrid
 @onready var stats_grid: GridContainer = $Root/Panel/Margin/VBox/StatsGrid
 @onready var gold_label: Label = $Root/Panel/Margin/VBox/HeaderRow/GoldLabel
@@ -35,6 +36,7 @@ func _bind() -> void:
 	if _inventory:
 		_inventory.items_changed.connect(_refresh)
 		_inventory.equipment_changed.connect(func(_s, _i): _refresh())
+		_inventory.glyphs_changed.connect(_refresh)
 	EventBus.player_gold_changed.connect(_on_gold_changed)
 	EventBus.player_stats_changed.connect(_rebuild_stats)
 
@@ -83,6 +85,7 @@ func _refresh() -> void:
 	_rebuild_stats()
 	_rebuild_equipment()
 	_rebuild_belt()
+	_rebuild_glyphs()
 	_rebuild_inventory()
 
 
@@ -156,6 +159,27 @@ func _rebuild_belt() -> void:
 		belt_box.add_child(btn)
 
 
+func _rebuild_glyphs() -> void:
+	for c in glyph_box.get_children():
+		c.queue_free()
+	for i in range(Inventory.GLYPH_SLOT_COUNT):
+		var g: Item = _inventory.glyph_slots[i]
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(120, 46)
+		btn.clip_text = true
+		if g == null:
+			btn.text = "[ Glyph %d ]" % (i + 1)
+			btn.disabled = true
+			btn.modulate = Color(0.5, 0.5, 0.55, 0.9)
+		else:
+			btn.text = g.display_name
+			btn.add_theme_color_override("font_color", g.get_rarity_color())
+			btn.mouse_entered.connect(_show_tooltip.bind(g))
+			btn.mouse_exited.connect(_hide_tooltip)
+			btn.pressed.connect(_inventory.glyph_unequip.bind(i))
+		glyph_box.add_child(btn)
+
+
 func _rebuild_equipment() -> void:
 	for c in equipment_box.get_children():
 		c.queue_free()
@@ -202,6 +226,9 @@ func _make_slot_button(item, slot_name: String, is_equipped: bool) -> Control:
 			# Clicking a potion in the backpack sends it to the belt.
 			btn.tooltip_text = "Send to potion belt."
 			btn.pressed.connect(_inventory.belt_assign.bind(item))
+		elif item.is_glyph():
+			btn.tooltip_text = "Equip to glyph slot."
+			btn.pressed.connect(_inventory.glyph_equip.bind(item))
 		else:
 			btn.pressed.connect(_inventory.equip.bind(item))
 	return btn

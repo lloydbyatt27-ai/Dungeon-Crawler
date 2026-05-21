@@ -164,6 +164,26 @@ const ITEM_TEMPLATES: Array = [
 	{ "id": "potion_mana_large", "name": "Greater Mana Potion", "type": "CONSUMABLE", "rarity": "UNCOMMON",
 	  "potion_effect": "mana", "potion_value": 130.0, "sell_value_override": 55,
 	  "description": "Restores 130 mana." },
+
+	# --- Glyphs (MISC; equipped to a glyph slot, modifies all skill casts) ---
+	{ "id": "glyph_ember", "name": "Glyph of Ember", "type": "MISC", "rarity": "RARE",
+	  "glyph_effect": "skill_damage", "glyph_value": 0.15, "sell_value_override": 60,
+	  "description": "+15% damage to all skills." },
+	{ "id": "glyph_ember_greater", "name": "Greater Glyph of Ember", "type": "MISC", "rarity": "EPIC",
+	  "glyph_effect": "skill_damage", "glyph_value": 0.30, "sell_value_override": 180,
+	  "description": "+30% damage to all skills." },
+	{ "id": "glyph_tide", "name": "Glyph of Tide", "type": "MISC", "rarity": "RARE",
+	  "glyph_effect": "skill_cooldown", "glyph_value": 0.10, "sell_value_override": 60,
+	  "description": "-10% cooldown on all skills." },
+	{ "id": "glyph_tide_greater", "name": "Greater Glyph of Tide", "type": "MISC", "rarity": "EPIC",
+	  "glyph_effect": "skill_cooldown", "glyph_value": 0.20, "sell_value_override": 180,
+	  "description": "-20% cooldown on all skills." },
+	{ "id": "glyph_iron", "name": "Glyph of Iron", "type": "MISC", "rarity": "RARE",
+	  "glyph_effect": "buff_duration", "glyph_value": 0.25, "sell_value_override": 50,
+	  "description": "+25% duration on buff skills." },
+	{ "id": "glyph_iron_greater", "name": "Greater Glyph of Iron", "type": "MISC", "rarity": "EPIC",
+	  "glyph_effect": "buff_duration", "glyph_value": 0.50, "sell_value_override": 160,
+	  "description": "+50% duration on buff skills." },
 ]
 
 ## Potion item_ids exposed for the Alchemist's stock.
@@ -176,6 +196,14 @@ const POTION_IDS: Array = [
 const GEM_IDS: Array = [
 	"gem_ruby", "gem_sapphire", "gem_emerald", "gem_topaz",
 	"gem_diamond", "gem_amethyst", "gem_onyx",
+]
+
+## Glyph item_ids — used by drop rolls. Glyphs are equipped into one of
+## the player's 3 glyph slots and apply as a global multiplier to skills.
+const GLYPH_IDS: Array = [
+	"glyph_ember", "glyph_ember_greater",
+	"glyph_tide",  "glyph_tide_greater",
+	"glyph_iron",  "glyph_iron_greater",
 ]
 
 const RARITY_WEIGHTS: Dictionary = {
@@ -278,6 +306,20 @@ static func roll_gem() -> Item:
 	if GEM_IDS.is_empty():
 		return null
 	var id: String = GEM_IDS[randi() % GEM_IDS.size()]
+	return create_by_id(id)
+
+
+## Returns a randomly-chosen glyph instance, weighted towards the RARE tier
+## with a 25% chance of bumping up to the EPIC "greater" variant.
+static func roll_glyph() -> Item:
+	if GLYPH_IDS.is_empty():
+		return null
+	# IDs are ordered as [base, greater, base, greater, ...] — pick a pair
+	# then 25% chance for the greater variant.
+	var pair_idx: int = randi() % (GLYPH_IDS.size() / 2)
+	var id: String = GLYPH_IDS[pair_idx * 2]
+	if randf() < 0.25:
+		id = GLYPH_IDS[pair_idx * 2 + 1]
 	return create_by_id(id)
 
 
@@ -396,6 +438,8 @@ static func _create_from_template(t: Dictionary, lvl: int) -> Item:
 	item.description = t.get("description", "")
 	item.potion_effect = t.get("potion_effect", "")
 	item.potion_value = t.get("potion_value", 0.0)
+	item.glyph_effect = t.get("glyph_effect", "")
+	item.glyph_value = t.get("glyph_value", 0.0)
 	item.set_id = t.get("set_id", "")
 	# Sell value: potions use the explicit override, gear uses the formula.
 	if t.has("sell_value_override"):

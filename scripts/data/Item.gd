@@ -44,6 +44,12 @@ enum Rarity { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY }
 @export var potion_effect: String = ""
 @export var potion_value: float = 0.0
 
+# Glyphs — skill-modifying items socketed into the player's 3 glyph slots.
+# glyph_effect ∈ {"", "skill_damage", "skill_cooldown", "buff_duration"}.
+# glyph_value is the multiplier delta (e.g. 0.15 → +15% skill damage).
+@export var glyph_effect: String = ""
+@export var glyph_value: float = 0.0
+
 # Set membership — items belonging to a named set grant bonuses when you
 # wear multiple pieces. Empty string = no set.
 @export var set_id: String = ""
@@ -122,6 +128,10 @@ func is_gem() -> bool:
 
 func is_potion() -> bool:
 	return item_type == ItemType.CONSUMABLE and potion_effect != ""
+
+
+func is_glyph() -> bool:
+	return item_type == ItemType.MISC and item_id.begins_with("glyph_") and glyph_effect != ""
 
 
 ## Items with sockets can absorb a gem. Returns true if the gem was applied.

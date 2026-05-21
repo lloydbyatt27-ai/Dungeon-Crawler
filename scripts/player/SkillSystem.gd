@@ -213,7 +213,10 @@ func try_cast(skill_id: String) -> bool:
 	if def.type != "buff":
 		var rank: int = _player.stats.skill_rank(skill_id) if _player.stats else 0
 		rank_cd_mult = max(0.4, 1.0 - 0.10 * rank)
-	cooldowns[skill_id] = def.cooldown * (1.0 - cdr) * form_cd_mult * rank_cd_mult
+	# Glyph: Tide-family glyphs subtract from cooldown multiplier.
+	var glyph_cd: float = _player.inventory.glyph_total("skill_cooldown") if _player.inventory else 0.0
+	var glyph_cd_mult: float = max(0.3, 1.0 - glyph_cd)
+	cooldowns[skill_id] = def.cooldown * (1.0 - cdr) * form_cd_mult * rank_cd_mult * glyph_cd_mult
 
 	var is_crit := false
 	if _player.stats:
@@ -259,6 +262,9 @@ func _cast_buff(def: Dictionary, skill_id: String) -> void:
 	if _player.stats:
 		var rank: int = _player.stats.skill_rank(skill_id)
 		duration *= (1.0 + 0.25 * rank)
+	# Glyph: Iron-family glyphs extend buff duration.
+	if _player.inventory:
+		duration *= (1.0 + _player.inventory.glyph_total("buff_duration"))
 	active_buff_amounts[stat_name] = amount
 	active_buff_timers[stat_name] = duration
 	if buff_aura_scene:
@@ -317,6 +323,9 @@ func _scaled_damage(def: Dictionary, skill_id: String, is_crit: bool) -> float:
 		var rank: int = _player.stats.skill_rank(skill_id)
 		dmg *= (1.0 + 0.20 * rank)
 	dmg *= (1.0 + active_buff_amounts.get("damage_bonus", 0.0))
+	# Glyph: Ember-family glyphs add a flat % to skill damage.
+	if _player.inventory:
+		dmg *= (1.0 + _player.inventory.glyph_total("skill_damage"))
 	if _player.shape_shift:
 		dmg *= _player.shape_shift.skill_damage_mult()
 	if is_crit and _player.stats:

@@ -76,8 +76,8 @@ func _refresh() -> void:
 	for item in _inventory.items:
 		if item.is_gem():
 			gem_items.append(item)
-		elif item.is_potion():
-			continue  # potions aren't forge material
+		elif item.is_potion() or item.is_glyph():
+			continue  # potions/glyphs aren't forge material
 		else:
 			equipment_items.append(item)
 
