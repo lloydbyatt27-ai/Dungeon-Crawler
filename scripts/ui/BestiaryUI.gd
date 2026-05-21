@@ -84,4 +84,22 @@ func _make_row(entry: Dictionary) -> Control:
 	hp.custom_minimum_size = Vector2(130, 0)
 	hp.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(hp)
+
+	# Boss kill time, if BossTimer has a record for this species
+	var key: String = String(entry.get("display", "")).replace(" ", "")
+	# Try a couple of lookup variants since species_key comes from the
+	# node name (no spaces) and display can be the friendly version
+	var time_label_text: String = ""
+	for try_key in [key, String(entry.get("display", ""))]:
+		if BossTimer.best_times.has(try_key):
+			time_label_text = "Best: " + BossTimer.format_time(float(BossTimer.best_times[try_key]))
+			break
+	if time_label_text != "":
+		var timer_label := Label.new()
+		timer_label.text = time_label_text
+		timer_label.add_theme_font_size_override("font_size", 12)
+		timer_label.add_theme_color_override("font_color", Color(1, 0.78, 0.35))
+		timer_label.custom_minimum_size = Vector2(110, 0)
+		timer_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(timer_label)
 	return row
