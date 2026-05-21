@@ -1,18 +1,59 @@
 extends Node
 ## First-time-player hints. Tracks which hints have been seen (per install)
-## and emits hint_requested as gameplay triggers fire. TutorialOverlay UIs
-## listen and display the text. Reset via reset() for testing.
+## and emits hint_requested as gameplay triggers fire. The overlay listens
+## for the structured payload {icon, title, body, step}. Reset via reset().
 
-signal hint_requested(text: String)
+signal hint_requested(payload)
 
 const FILE_PATH: String = "user://tutorial.json"
 
+## Ordered ids drive the "Tip N of M" badge in the overlay.
+const HINT_ORDER: Array = [
+	"movement", "attack", "skills", "shapeshift",
+	"inventory", "potion", "loot", "forge", "stash", "merc",
+]
+
 const HINTS: Dictionary = {
-	"movement":   "WASD to move    ·    Space to dodge",
-	"attack":     "Left Mouse: light attack    ·    Right Mouse: heavy",
-	"skills":     "Q / E / R cast your class skills (cost mana)",
-	"shapeshift": "Press X to enter Changeling Form when Essence is high",
-	"inventory":  "Press I to open inventory    ·    Hold Alt to compare items\nPress J for quests, M for the map",
+	"movement": {
+		"icon": "✦", "title": "Movement",
+		"body": "[b]WASD[/b] to move    ·    [b]Space[/b] to dodge\nDodging gives brief invulnerability."
+	},
+	"attack": {
+		"icon": "⚔", "title": "Attacks",
+		"body": "[b]Left Mouse[/b]: light attack chain\n[b]Right Mouse[/b]: heavy (slower, harder hitting)"
+	},
+	"skills": {
+		"icon": "✺", "title": "Skills",
+		"body": "[b]Q / E / R[/b] cast your class skills (cost mana).\nSpend skill points at the PauseMenu > [b]Skills[/b] panel ([b]K[/b])."
+	},
+	"shapeshift": {
+		"icon": "▼", "title": "Shapeshift",
+		"body": "Press [b]X[/b] to enter Changeling Form when [color=#cc99ff]Essence[/color] is high.\nForms boost damage and reshape your kit."
+	},
+	"inventory": {
+		"icon": "▣", "title": "Inventory",
+		"body": "[b]I[/b] opens inventory · hold [b]Alt[/b] to compare gear · [b]P[/b] pins an item against accidental selling."
+	},
+	"potion": {
+		"icon": "♥", "title": "Potion Belt",
+		"body": "Buy potions from the [color=#aaff99]Alchemist[/color]. Drag onto your belt then press [b]1-4[/b] to drink."
+	},
+	"loot": {
+		"icon": "✶", "title": "Loot",
+		"body": "Rare items shine with a beam. Walk near them to vacuum drops up.\nFilter what auto-picks via PauseMenu > [b]Loot Filter[/b]."
+	},
+	"forge": {
+		"icon": "⚒", "title": "The Forge",
+		"body": "Spend [color=#cc99ff]Soul Shards[/color] to upgrade gear, socket gems, or [b]Reforge[/b] rare+ affixes."
+	},
+	"stash": {
+		"icon": "▤", "title": "The Vault",
+		"body": "Stash items across characters. Four tabs (General / Gems / Sets / Dump) keep things organized."
+	},
+	"merc": {
+		"icon": "♟", "title": "Mercenary",
+		"body": "Hire an AI follower from PauseMenu > [b]Mercenary[/b]. They level up alongside you."
+	},
 }
 
 var seen: Dictionary = {}
@@ -25,6 +66,7 @@ func _ready() -> void:
 	EventBus.player_essence_changed.connect(_on_essence_changed)
 	EventBus.item_picked_up.connect(_on_item_picked_up)
 	EventBus.sfx_attack_swing.connect(_on_attack_swing)
+	EventBus.player_gold_changed.connect(_on_gold_changed)
 
 
 func _process(_delta: float) -> void:
@@ -50,8 +92,21 @@ func _on_essence_changed(value: float) -> void:
 		_show("shapeshift")
 
 
-func _on_item_picked_up(_item) -> void:
+func _on_item_picked_up(item) -> void:
 	_show("inventory")
+	# A loot beam hint only really makes sense once you've seen one
+	if item and "rarity" in item and int(item.rarity) >= int(Item.Rarity.RARE):
+		_show("loot")
+
+
+func _on_gold_changed(amount: int) -> void:
+	# Forge/stash/merc hints kick in once the player has some gold to spend
+	if amount >= 200:
+		_show("forge")
+	if amount >= 500:
+		_show("stash")
+	if amount >= 400:
+		_show("merc")
 
 
 # --- Core --------------------------------------------------------
@@ -61,9 +116,17 @@ func _show(id: String) -> void:
 		return
 	seen[id] = true
 	_save()
-	var text: String = HINTS.get(id, "")
-	if text != "":
-		hint_requested.emit(text)
+	var hint: Dictionary = HINTS.get(id, {})
+	if hint.is_empty():
+		return
+	var step_index: int = HINT_ORDER.find(id) + 1
+	var payload := {
+		"icon": hint.get("icon", "★"),
+		"title": hint.get("title", "Tip"),
+		"body": hint.get("body", ""),
+		"step": "Tip %d / %d" % [step_index, HINT_ORDER.size()],
+	}
+	hint_requested.emit(payload)
 
 
 func _delayed_show(id: String, delay: float) -> void:

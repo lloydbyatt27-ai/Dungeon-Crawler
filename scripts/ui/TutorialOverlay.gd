@@ -1,53 +1,68 @@
 extends CanvasLayer
-## Listens to TutorialManager.hint_requested and shows the hint in a panel
-## near the top of the screen. Fades in, holds, fades out. Press any key
-## to dismiss early.
+## Tutorial hint display. Listens to TutorialManager.hint_requested and
+## shows a structured card (icon + title + body + dismiss button). Stays
+## visible until the player presses Space or clicks Got It; no auto-fade.
 
 @onready var root: Control = $Root
 @onready var panel: PanelContainer = $Root/Panel
-@onready var hint_label: Label = $Root/Panel/Margin/VBox/HintLabel
+@onready var icon_label: Label = $Root/Panel/Margin/VBox/HeaderRow/Icon
+@onready var title_label: Label = $Root/Panel/Margin/VBox/HeaderRow/Title
+@onready var step_label: Label = $Root/Panel/Margin/VBox/HeaderRow/StepLabel
+@onready var hint_label: RichTextLabel = $Root/Panel/Margin/VBox/HintLabel
+@onready var dismiss_button: Button = $Root/Panel/Margin/VBox/ButtonRow/DismissButton
 
-const FADE_IN: float = 0.35
-const HOLD: float = 5.0
-const FADE_OUT: float = 0.7
-
-var _active_tween: Tween
+var _showing: bool = false
 
 
 func _ready() -> void:
 	root.modulate.a = 0.0
 	panel.visible = false
+	dismiss_button.pressed.connect(_dismiss)
 	TutorialManager.hint_requested.connect(_on_hint)
 
 
-func _on_hint(text: String) -> void:
-	hint_label.text = text
+func _on_hint(payload) -> void:
+	# Backward-compat: TutorialManager originally emitted a String.
+	# Now it emits a Dictionary {icon, title, body, step}. Accept both.
+	var icon: String = "★"
+	var title: String = "Tip"
+	var body: String = ""
+	var step: String = ""
+	if payload is Dictionary:
+		icon = String(payload.get("icon", icon))
+		title = String(payload.get("title", title))
+		body = String(payload.get("body", ""))
+		step = String(payload.get("step", ""))
+	elif payload is String:
+		body = String(payload)
+
+	icon_label.text = icon
+	title_label.text = title
+	step_label.text = step
+	hint_label.clear()
+	hint_label.append_text(body)
 	panel.visible = true
-	root.modulate.a = 0.0
-	if _active_tween:
-		_active_tween.kill()
-	_active_tween = create_tween()
-	_active_tween.tween_property(root, "modulate:a", 1.0, FADE_IN)
-	_active_tween.tween_interval(HOLD)
-	_active_tween.tween_property(root, "modulate:a", 0.0, FADE_OUT)
-	_active_tween.tween_callback(_clear)
+	_showing = true
+	var t := create_tween()
+	t.tween_property(root, "modulate:a", 1.0, 0.25)
 
 
 func _input(event: InputEvent) -> void:
-	# Dismiss early on any keyboard/mouse input while the hint is up
-	if root.modulate.a > 0.1 and (event is InputEventKey or event is InputEventMouseButton):
-		if (event is InputEventKey and event.pressed) or (event is InputEventMouseButton and event.pressed):
-			_dismiss_early()
+	if not _showing:
+		return
+	if event is InputEventKey and event.pressed:
+		var key := (event as InputEventKey).keycode
+		if key == KEY_SPACE or key == KEY_ENTER or key == KEY_ESCAPE:
+			_dismiss()
+			get_viewport().set_input_as_handled()
 
 
-func _dismiss_early() -> void:
-	if _active_tween:
-		_active_tween.kill()
-	_active_tween = create_tween()
-	_active_tween.tween_property(root, "modulate:a", 0.0, 0.25)
-	_active_tween.tween_callback(_clear)
-
-
-func _clear() -> void:
-	panel.visible = false
-	root.modulate.a = 0.0
+func _dismiss() -> void:
+	if not _showing:
+		return
+	_showing = false
+	var t := create_tween()
+	t.tween_property(root, "modulate:a", 0.0, 0.2)
+	t.tween_callback(func():
+		panel.visible = false
+	)
