@@ -50,6 +50,10 @@ var buffered_attack: String = ""  # "light" or "heavy" buffered during recovery
 var current_mana: float = 0.0
 var current_essence: float = 0.0  # 0-100, shapeshift fuel
 
+# Source of the last damage taken — captured for the death recap so we
+# can attribute the kill to a specific enemy / source.
+var last_damage_source: Node
+
 # Nodes
 @onready var health: Health = $Health
 @onready var hurtbox: HurtBox = $HurtBox
@@ -407,6 +411,8 @@ func _on_damaged(info: DamageInfo) -> void:
 		return
 	if state == State.ATTACKING:
 		_cancel_attack()
+	if info and info.source:
+		last_damage_source = info.source
 	_flash_red()
 	EventBus.player_took_damage.emit(info.amount, info.source)
 
@@ -416,6 +422,14 @@ func _on_died() -> void:
 	_cancel_attack()
 	melee_hitbox.deactivate()
 	hurtbox.set_deferred("monitorable", false)
+	# Record this run in history before the scene transitions to menu
+	var killer_name: String = ""
+	if last_damage_source:
+		if "display_name" in last_damage_source and String(last_damage_source.display_name) != "":
+			killer_name = String(last_damage_source.display_name)
+		else:
+			killer_name = last_damage_source.name
+	RunHistory.record_death(self, killer_name)
 	# Topple the body
 	var tween := create_tween()
 	tween.tween_property(body_mesh, "rotation:x", deg_to_rad(-90.0), 0.5)

@@ -18,6 +18,7 @@ extends CanvasLayer
 @onready var floor_label: Label = $Root/FloorLabel
 @onready var form_indicator: Label = $Root/FormIndicator
 @onready var death_overlay: ColorRect = $Root/DeathOverlay
+@onready var death_recap: RichTextLabel = $Root/DeathOverlay/DeathRecap
 @onready var skill_bar: HBoxContainer = $Root/SkillBar
 @onready var potion_belt: HBoxContainer = $Root/PotionBelt
 
@@ -248,10 +249,44 @@ func _on_player_died() -> void:
 		var death_label := death_overlay.get_node_or_null("DeathLabel") as Label
 		if death_label:
 			death_label.text = "PERMADEATH"
+	_build_death_recap()
 	var tween := create_tween()
 	tween.tween_property(death_overlay, "modulate:a", 1.0, 0.8)
-	tween.tween_interval(2.5 if is_hardcore else 1.5)
+	tween.tween_interval(4.5 if is_hardcore else 3.5)
 	tween.tween_callback(_to_main_menu)
+
+
+func _build_death_recap() -> void:
+	if death_recap == null:
+		return
+	death_recap.clear()
+	# Killer attribution
+	var killer_name: String = "the dungeon"
+	if _player and _player.last_damage_source:
+		var src = _player.last_damage_source
+		if "display_name" in src and String(src.display_name) != "":
+			killer_name = String(src.display_name)
+		else:
+			killer_name = src.name
+	death_recap.push_color(Color(0.85, 0.85, 0.9))
+	death_recap.add_text("Slain by ")
+	death_recap.push_color(Color(1, 0.55, 0.45))
+	death_recap.add_text(killer_name)
+	death_recap.pop()
+	death_recap.add_text("\n\n")
+	# Stats — run deltas from GameState
+	var kills: int = int(GameState.run_delta("monsters_killed"))
+	var bosses: int = int(GameState.run_delta("bosses_defeated"))
+	var gold: int = int(GameState.run_delta("gold_earned_total"))
+	var items: int = int(GameState.run_delta("items_collected"))
+	var run_time: float = GameState.run_delta("play_time_seconds")
+	var time_str: String = "%d:%02d" % [int(run_time) / 60, int(run_time) % 60]
+	death_recap.add_text("Run time: %s\n" % time_str)
+	death_recap.add_text("Kills: %d   ·   Bosses: %d\n" % [kills, bosses])
+	death_recap.add_text("Items collected: %d   ·   Gold gained: %d\n" % [items, gold])
+	if _player and _player.stats:
+		death_recap.add_text("Final level: %d\n" % _player.stats.level)
+	death_recap.pop()
 
 
 func _to_main_menu() -> void:
