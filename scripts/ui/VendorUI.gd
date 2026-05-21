@@ -116,7 +116,7 @@ func _make_buy_row(item: Item) -> Control:
 	var price_label := Label.new()
 	price_label.custom_minimum_size = Vector2(70, 32)
 	price_label.text = "%dg" % _buy_price(item)
-	price_label.add_theme_color_override("font_color", Color(1, 0.85, 0.3))
+	price_label.add_theme_color_override("font_color", UIStyle.COL_GOLD)
 	price_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	row.add_child(price_label)
@@ -141,7 +141,7 @@ func _make_sell_row(item: Item) -> Control:
 	sell_btn.custom_minimum_size = Vector2(64, 32)
 	sell_btn.text = "%dg" % item.sell_value
 	sell_btn.tooltip_text = "Sell for gold"
-	sell_btn.add_theme_color_override("font_color", Color(1, 0.85, 0.3))
+	sell_btn.add_theme_color_override("font_color", UIStyle.COL_GOLD)
 	sell_btn.pressed.connect(_sell.bind(item))
 	row.add_child(sell_btn)
 
@@ -149,7 +149,7 @@ func _make_sell_row(item: Item) -> Control:
 	salvage_btn.custom_minimum_size = Vector2(58, 32)
 	salvage_btn.text = "%d◆" % Inventory.SHARD_BY_RARITY.get(item.rarity, 1)
 	salvage_btn.tooltip_text = "Salvage for soul shards"
-	salvage_btn.add_theme_color_override("font_color", Color(0.8, 0.55, 1))
+	salvage_btn.add_theme_color_override("font_color", UIStyle.COL_SHARDS)
 	salvage_btn.pressed.connect(_salvage.bind(item))
 	row.add_child(salvage_btn)
 	return row
@@ -202,11 +202,4 @@ func _hide_tooltip() -> void:
 
 
 func _position_tooltip() -> void:
-	var mp := get_viewport().get_mouse_position()
-	var cursor_offset := Vector2(18, 18)
-	var tip_size := tooltip.size
-	var vp := get_viewport().get_visible_rect().size
-	var pos := mp + cursor_offset
-	if pos.x + tip_size.x > vp.x: pos.x = mp.x - tip_size.x - 8
-	if pos.y + tip_size.y > vp.y: pos.y = mp.y - tip_size.y - 8
-	tooltip.position = pos
+	UIStyle.position_tooltip(tooltip)

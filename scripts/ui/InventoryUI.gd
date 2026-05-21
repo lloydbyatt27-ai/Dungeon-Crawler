@@ -6,6 +6,7 @@ extends CanvasLayer
 @onready var root: Control = $Root
 @onready var dim: ColorRect = $Root/Dim
 @onready var equipment_box: HBoxContainer = $Root/Panel/Margin/VBox/EquipmentBox
+@onready var belt_box: HBoxContainer = $Root/Panel/Margin/VBox/BeltBox
 @onready var inventory_grid: GridContainer = $Root/Panel/Margin/VBox/InventoryGrid
 @onready var stats_grid: GridContainer = $Root/Panel/Margin/VBox/StatsGrid
 @onready var gold_label: Label = $Root/Panel/Margin/VBox/HeaderRow/GoldLabel
@@ -41,8 +42,14 @@ func _bind() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("inventory"):
 		toggle()
-	elif root.visible and event is InputEventKey and (event as InputEventKey).keycode == KEY_ESCAPE and event.pressed:
-		toggle()
+	elif root.visible and event is InputEventKey and event.pressed:
+		var key := (event as InputEventKey).keycode
+		if key == KEY_ESCAPE:
+			toggle()
+		elif key == KEY_P and _hovered_item:
+			_hovered_item.pinned = not _hovered_item.pinned
+			_show_tooltip(_hovered_item)
+			_refresh()
 
 
 func toggle() -> void:
@@ -55,14 +62,7 @@ func toggle() -> void:
 
 func _process(_delta: float) -> void:
 	if tooltip.visible:
-		var mp := get_viewport().get_mouse_position()
-		var cursor_offset := Vector2(18, 18)
-		var tip_size := tooltip.size
-		var vp := get_viewport().get_visible_rect().size
-		var pos := mp + cursor_offset
-		if pos.x + tip_size.x > vp.x: pos.x = mp.x - tip_size.x - 8
-		if pos.y + tip_size.y > vp.y: pos.y = mp.y - tip_size.y - 8
-		tooltip.position = pos
+		UIStyle.position_tooltip(tooltip)
 		# Alt toggles equipped-item comparison
 		var alt_now := Input.is_key_pressed(KEY_ALT)
 		if alt_now != _alt_was_down:
@@ -82,6 +82,7 @@ func _refresh() -> void:
 		gold_label.text = "Gold: %d" % _player.stats.gold
 	_rebuild_stats()
 	_rebuild_equipment()
+	_rebuild_belt()
 	_rebuild_inventory()
 
 
@@ -134,6 +135,27 @@ func _attr_text(base: int, bonus: int) -> String:
 	return "%d" % base
 
 
+func _rebuild_belt() -> void:
+	for c in belt_box.get_children():
+		c.queue_free()
+	for i in range(Inventory.POTION_BELT_SIZE):
+		var item: Item = _inventory.potion_belt[i]
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(80, 48)
+		btn.clip_text = true
+		if item == null:
+			btn.text = "[ %d ]" % (i + 1)
+			btn.disabled = true
+			btn.modulate = Color(0.5, 0.5, 0.55, 0.9)
+		else:
+			btn.text = "%d: %s" % [i + 1, item.display_name]
+			btn.add_theme_color_override("font_color", item.get_rarity_color())
+			btn.mouse_entered.connect(_show_tooltip.bind(item))
+			btn.mouse_exited.connect(_hide_tooltip)
+			btn.pressed.connect(_inventory.belt_take.bind(i))
+		belt_box.add_child(btn)
+
+
 func _rebuild_equipment() -> void:
 	for c in equipment_box.get_children():
 		c.queue_free()
@@ -166,13 +188,20 @@ func _make_slot_button(item, slot_name: String, is_equipped: bool) -> Control:
 		btn.disabled = true
 		btn.modulate = Color(0.5, 0.5, 0.55, 0.9)
 	else:
-		btn.text = item.display_name
+		btn.text = ("• " if item.pinned else "") + item.display_name
 		btn.add_theme_color_override("font_color", item.get_rarity_color())
 		btn.add_theme_color_override("font_hover_color", item.get_rarity_color())
 		btn.mouse_entered.connect(_show_tooltip.bind(item))
 		btn.mouse_exited.connect(_hide_tooltip)
 		if is_equipped:
 			btn.pressed.connect(_inventory.unequip.bind(slot_name))
+		elif item.is_gem():
+			# Gems aren't equippable — only consumed by the Forge.
+			btn.tooltip_text = "Socket me into an item at the Forge."
+		elif item.is_potion():
+			# Clicking a potion in the backpack sends it to the belt.
+			btn.tooltip_text = "Send to potion belt."
+			btn.pressed.connect(_inventory.belt_assign.bind(item))
 		else:
 			btn.pressed.connect(_inventory.equip.bind(item))
 	return btn

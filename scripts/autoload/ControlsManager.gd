@@ -15,6 +15,7 @@ const REBINDABLE: Array = [
 	"inventory",
 	"quest_log",
 	"toggle_map",
+	"skill_tree",
 ]
 
 # Friendly labels shown in the UI
@@ -28,6 +29,7 @@ const LABELS: Dictionary = {
 	"inventory":   "Inventory",
 	"quest_log":   "Quest Log",
 	"toggle_map":  "Toggle Map",
+	"skill_tree":  "Skills Panel",
 }
 
 
@@ -103,12 +105,10 @@ func _apply_rebind(action: String, new_keycode: int) -> void:
 
 
 ## Restore all rebindable actions to whatever their project.godot defaults
-## are by deleting the controls file and reloading.
+## are by deleting the controls file and reloading from ProjectSettings.
 func reset_to_defaults() -> void:
 	if FileAccess.file_exists(FILE_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(FILE_PATH))
-	# A reload reapplies project.godot defaults to InputMap automatically,
-	# but since the running session has our overrides, we need to manually
-	# clear them. The simplest path is to re-read project.godot defaults,
-	# but Godot doesn't expose that easily — so we tell the user a restart
-	# refreshes everything. For Phase 3 this is acceptable.
+	# InputMap.load_from_project_settings() re-reads the [input] section in
+	# project.godot, replacing every action with its declared default events.
+	InputMap.load_from_project_settings()

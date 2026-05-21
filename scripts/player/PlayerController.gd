@@ -86,14 +86,33 @@ func _ready() -> void:
 	# Otherwise, apply a freshly-chosen class preset from ClassSelect
 	elif SaveSystem.pending_class != "":
 		stats.apply_class_preset(SaveSystem.pending_class)
+		stats.hardcore = SaveSystem.pending_hardcore
 		SaveSystem.pending_class = ""
+		SaveSystem.pending_hardcore = false
 		# Re-apply derived resources with the new class's max HP / mana
 		health.set_max_health(stats.max_hp(), true)
 		current_mana = stats.max_mana()
 	# Apply class-specific configuration (body tint + active skills)
 	_apply_class_visuals_and_skills()
+	# Spawn the player's mercenary follower, if any
+	_spawn_mercenary_if_hired()
 	# Mark the start of a fresh run for the area-complete summary
 	GameState.start_run()
+
+
+func _spawn_mercenary_if_hired() -> void:
+	if not MercenarySystem.has_active_merc():
+		return
+	# Don't double-spawn if one already exists in the scene
+	if not get_tree().get_nodes_in_group("mercenary").is_empty():
+		return
+	var scene: PackedScene = load("res://scenes/world/Mercenary.tscn")
+	if scene == null:
+		return
+	var merc := scene.instantiate()
+	merc.merc_type = MercenarySystem.current_type
+	get_tree().current_scene.add_child(merc)
+	merc.global_position = global_position + Vector3(1.6, 0.0, 1.6)
 
 
 func _apply_class_visuals_and_skills() -> void:
@@ -136,6 +155,10 @@ func _physics_process(delta: float) -> void:
 
 	if not is_on_floor():
 		velocity.y -= gravity * delta
+
+	# Potion hotkeys (1-4) work regardless of state, so you can drink
+	# while attacking, dodging, etc.
+	_handle_potion_hotkeys()
 
 	match state:
 		State.IDLE, State.MOVING:
@@ -218,6 +241,15 @@ func _handle_combat_input() -> void:
 		return
 
 
+func _handle_potion_hotkeys() -> void:
+	if inventory == null:
+		return
+	for i in range(4):
+		if Input.is_action_just_pressed("potion_%d" % (i + 1)):
+			inventory.use_belt_potion(i)
+			return
+
+
 func _buffer_combat_input() -> void:
 	# During an attack, queue the next action for the recovery transition
 	if attack_phase != AttackPhase.RECOVERY:
@@ -249,7 +281,6 @@ func _start_dodge() -> void:
 	_rotate_toward(dodge_direction, 1.0)
 	# Enable iframes (briefly disable hurtbox from being detected)
 	# Actual toggle is timed in _process_dodge
-	print("[Player] Dodge!")
 
 
 func _process_dodge(delta: float) -> void:
