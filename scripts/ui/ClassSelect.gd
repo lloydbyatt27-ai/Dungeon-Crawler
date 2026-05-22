@@ -149,7 +149,7 @@ func _select(class_id: String) -> void:
 	# Highlight selected card
 	for i in range(_cards.size()):
 		var card := _cards[i]
-		var card_class := ClassDatabase.all_class_names()[i]
+		var card_class: String = ClassDatabase.all_class_names()[i]
 		var card_color: Color = ClassDatabase.get_class_data(card_class).get("body_color", Color.WHITE)
 		if card_class == class_id:
 			card.modulate = Color(1.4, 1.4, 1.4)
