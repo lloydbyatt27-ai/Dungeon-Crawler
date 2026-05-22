@@ -329,8 +329,7 @@ func _hire_merc(merc_id: String, cost: int) -> void:
 	if p.stats.gold < cost:
 		return
 	# If there's already a different merc, despawn it before swapping
-	for old in get_tree().get_nodes_in_group("mercenary"):
-		old.queue_free()
+	MercenarySystem.despawn_active()
 	p.stats.gold -= cost
 	EventBus.player_gold_changed.emit(p.stats.gold)
 	MercenarySystem.hire(merc_id)
@@ -347,8 +346,7 @@ func _hire_merc(merc_id: String, cost: int) -> void:
 
 
 func _dismiss_merc() -> void:
-	for old in get_tree().get_nodes_in_group("mercenary"):
-		old.queue_free()
+	MercenarySystem.despawn_active()
 	MercenarySystem.dismiss()
 	_close_merc_popup()
 	_show_mercenary()

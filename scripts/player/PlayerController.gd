@@ -108,7 +108,7 @@ func _spawn_mercenary_if_hired() -> void:
 	if not MercenarySystem.has_active_merc():
 		return
 	# Don't double-spawn if one already exists in the scene
-	if not get_tree().get_nodes_in_group("mercenary").is_empty():
+	if MercenarySystem.has_active_in_scene():
 		return
 	var scene: PackedScene = load("res://scenes/world/Mercenary.tscn")
 	if scene == null:

@@ -127,12 +127,12 @@ func _rebuild_stats() -> void:
 	for pair in pairs:
 		var name_label := Label.new()
 		name_label.text = pair[0]
-		name_label.add_theme_color_override("font_color", Color(0.72, 0.72, 0.78))
+		name_label.add_theme_color_override("font_color", UIStyle.COL_MUTED)
 		name_label.add_theme_font_size_override("font_size", 12)
 		stats_grid.add_child(name_label)
 		var val_label := Label.new()
 		val_label.text = pair[1]
-		val_label.add_theme_color_override("font_color", Color(1, 1, 1))
+		val_label.add_theme_color_override("font_color", Color.WHITE)
 		val_label.add_theme_font_size_override("font_size", 12)
 		stats_grid.add_child(val_label)
 

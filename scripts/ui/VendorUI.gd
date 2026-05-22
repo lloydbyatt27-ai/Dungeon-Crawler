@@ -63,7 +63,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(_delta: float) -> void:
 	if tooltip.visible:
-		_position_tooltip()
+		UIStyle.position_tooltip(tooltip)
 		var alt_now := Input.is_key_pressed(KEY_ALT)
 		if alt_now != _alt_was_down:
 			_alt_was_down = alt_now
@@ -199,7 +199,3 @@ func _show_tooltip(item: Item) -> void:
 func _hide_tooltip() -> void:
 	tooltip.visible = false
 	_hovered_item = null
-
-
-func _position_tooltip() -> void:
-	UIStyle.position_tooltip(tooltip)

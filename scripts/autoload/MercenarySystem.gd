@@ -21,8 +21,50 @@ var xp: int = 0
 var specialization: String = ""
 const SPEC_UNLOCK_LEVEL: int = 5
 
+# Live mercenary instances in the current scene. Mercenary._ready calls
+# `register()`, `_on_died` and despawn flows call `unregister()`. Cached
+# here so XP events don't have to call get_nodes_in_group every kill.
+var _active_mercs: Array[Node] = []
+
 
 signal merc_leveled_up(new_level: int)
+
+
+# --- Active merc registry --------------------------------------
+
+func register(merc: Node) -> void:
+	if merc and not (merc in _active_mercs):
+		_active_mercs.append(merc)
+
+
+func unregister(merc: Node) -> void:
+	_active_mercs.erase(merc)
+
+
+func has_active_in_scene() -> bool:
+	# Prune any stale references before answering — queue_free'd nodes
+	# can hang around in this list until their next frame.
+	for m in _active_mercs.duplicate():
+		if not is_instance_valid(m):
+			_active_mercs.erase(m)
+	return not _active_mercs.is_empty()
+
+
+## Despawn every active mercenary in the scene. Used by PauseMenu's
+## hire/dismiss flow so existing mercs are cleaned up before swapping.
+func despawn_active() -> void:
+	for m in _active_mercs.duplicate():
+		if is_instance_valid(m):
+			m.queue_free()
+	_active_mercs.clear()
+
+
+## Lookup a spec definition by merc type + id. Returns {} if not found.
+func _find_spec(merc_type: String, spec_id: String) -> Dictionary:
+	for spec in SPECIALIZATIONS.get(merc_type, []):
+		if spec.get("id", "") == spec_id:
+			return spec
+	return {}
 
 ## Specializations available per merc type. Picked once at SPEC_UNLOCK_LEVEL
 ## and locked in until the merc is dismissed. Each entry is a stat-mult
@@ -53,10 +95,7 @@ const SPECIALIZATIONS: Dictionary = {
 func current_spec_data() -> Dictionary:
 	if current_type == "" or specialization == "":
 		return {}
-	for spec in SPECIALIZATIONS.get(current_type, []):
-		if spec.get("id", "") == specialization:
-			return spec
-	return {}
+	return _find_spec(current_type, specialization)
 
 
 func spec_unlocked() -> bool:
@@ -66,16 +105,15 @@ func spec_unlocked() -> bool:
 func choose_spec(spec_id: String) -> bool:
 	if not spec_unlocked():
 		return false
-	for spec in SPECIALIZATIONS.get(current_type, []):
-		if spec.get("id", "") == spec_id:
-			specialization = spec_id
-			_save()
-			# Rescale any live mercenaries to apply the new bonuses
-			for m in get_tree().get_nodes_in_group("mercenary"):
-				if m.has_method("apply_level_scaling"):
-					m.apply_level_scaling()
-			return true
-	return false
+	if _find_spec(current_type, spec_id).is_empty():
+		return false
+	specialization = spec_id
+	_save()
+	# Rescale any live mercenaries to apply the new bonuses
+	for m in _active_mercs:
+		if is_instance_valid(m) and m.has_method("apply_level_scaling"):
+			m.apply_level_scaling()
+	return true
 
 
 const MERC_TYPES: Dictionary = {
@@ -129,10 +167,11 @@ func hp_multiplier() -> float:
 func _on_enemy_died(enemy: Node, _pos: Vector3) -> void:
 	if not has_active_merc():
 		return
-	# Only award XP when a merc is actually present in the scene
-	if get_tree() == null:
-		return
-	if get_tree().get_nodes_in_group("mercenary").is_empty():
+	# Only award XP when a merc is actually present in the scene.
+	# Uses the cached registry instead of get_nodes_in_group (which
+	# would allocate an Array on every enemy death — and there can be
+	# dozens per second in a packed room).
+	if not has_active_in_scene():
 		return
 	var amount: int = XP_PER_KILL
 	if enemy and "is_boss" in enemy and enemy.is_boss:
@@ -162,8 +201,8 @@ func _gain_xp(amount: int) -> void:
 		)
 		# Rescale any active mercenary instances on the fly so the buff
 		# applies mid-run, not just on next spawn.
-		for m in get_tree().get_nodes_in_group("mercenary"):
-			if m.has_method("apply_level_scaling"):
+		for m in _active_mercs:
+			if is_instance_valid(m) and m.has_method("apply_level_scaling"):
 				m.apply_level_scaling()
 	_save()
 

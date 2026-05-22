@@ -68,7 +68,14 @@ func _load() -> void:
 	var parsed = JSON.parse_string(f.get_as_text())
 	f.close()
 	if parsed is Dictionary:
-		entries = parsed.duplicate(true)
+		# Defensive load: only accept Dictionary-shaped per-species entries.
+		# If a third-party tool or older save format corrupts the file we'd
+		# rather drop the bad rows than crash on a later .get() call.
+		entries.clear()
+		for key in parsed:
+			var v = parsed[key]
+			if v is Dictionary:
+				entries[String(key)] = v.duplicate(true)
 
 
 func _save() -> void:

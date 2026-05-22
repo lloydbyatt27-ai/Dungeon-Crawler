@@ -27,6 +27,8 @@ var _target: Node3D
 
 func _ready() -> void:
 	add_to_group("mercenary")
+	MercenarySystem.register(self)
+	tree_exiting.connect(func(): MercenarySystem.unregister(self))
 	_apply_type_config()
 	# Re-team hurtbox/hitbox so the merc is on the player's side
 	if hurtbox:
